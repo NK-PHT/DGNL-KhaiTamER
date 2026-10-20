@@ -19,10 +19,19 @@
         console.error('Không khởi tạo được Firebase. Kiểm tra js/firebase-config.js', e);
     }
 
-    const DANH_SACH_DUOC_PHEP = (window.DGNL_ALLOWED_EMAILS || []).map(e => (e || '').trim().toLowerCase());
-    function duocPhep(email) {
-        const e = (email || '').trim().toLowerCase();
-        return DANH_SACH_DUOC_PHEP.indexOf(e) !== -1 || e === TEACHER_EMAIL;
+    // Trả về 'ok' | 'khong-co' | 'loi' — danh sách nằm trong Firestore
+    // (hocsinh/<email>), do giáo viên quản lý ở quan-ly-hoc-sinh.html.
+    async function kiemTraDuocPhep(user) {
+        const email = (user.email || '').trim().toLowerCase();
+        if (!email || !user.emailVerified) return 'khong-co';
+        if (email === TEACHER_EMAIL) return 'ok';
+        try {
+            const snap = await db.collection('hocsinh').doc(email).get();
+            return snap.exists ? 'ok' : 'khong-co';
+        } catch (e) {
+            console.error('Lỗi khi kiểm tra danh sách học sinh:', e);
+            return e && e.code === 'permission-denied' ? 'khong-co' : 'loi';
+        }
     }
 
     function showLoginError(msg) {
@@ -94,16 +103,22 @@
     }
 
     if (auth) {
-        auth.onAuthStateChanged(function (user) {
-            setLoading(false);
+        auth.onAuthStateChanged(async function (user) {
             if (user) {
-                if (!duocPhep(user.email)) {
-                    auth.signOut();
-                    showLoginError('Email ' + user.email + ' chưa được đăng ký sử dụng web này.');
+                setLoading(true);
+                const kq = await kiemTraDuocPhep(user);
+                setLoading(false);
+                if (kq !== 'ok') {
+                    const email = user.email;
+                    await auth.signOut();
+                    showLoginError(kq === 'loi'
+                        ? 'Không kiểm tra được danh sách học sinh (lỗi kết nối). Vui lòng tải lại trang.'
+                        : 'Email ' + email + ' chưa được đăng ký sử dụng web này.');
                     return;
                 }
                 showApp();
             } else {
+                setLoading(false);
                 showLogin();
             }
         });

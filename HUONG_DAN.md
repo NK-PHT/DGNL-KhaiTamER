@@ -1,5 +1,60 @@
 # Hướng dẫn cài đặt Web ĐGNL Online
 
+## 0. Chuyển sang Firebase Hosting (để giữ kho code Private, không ai tìm ra)
+
+Trước đây web dùng **GitHub Pages**, mà GitHub Pages ở gói miễn phí bắt buộc
+kho code (repo) phải **công khai (Public)** thì mới đăng web lên được — ai
+cũng có thể vào GitHub tìm thấy toàn bộ code, tên trường, lịch sử chỉnh sửa.
+Để tránh việc này, web đã được cấu hình sẵn để đăng qua **Firebase
+Hosting** thay vì GitHub Pages — web vẫn public bình thường (ai có link
+vẫn vào luyện tập được), nhưng kho code trên GitHub thì bạn có thể để
+**Private (riêng tư)** thoải mái, không ảnh hưởng gì tới web.
+
+Mọi file cấu hình (`firebase.json`, `.firebaserc`, workflow tự động deploy)
+đã có sẵn trong repo. Bạn chỉ cần làm **1 lần duy nhất** các bước sau (mất
+khoảng 5-10 phút):
+
+1. **Lấy "chìa khoá" cho phép GitHub tự động đăng web lên Firebase:**
+   - Vào https://console.firebase.google.com → chọn project **dgnl-2027**.
+   - Bấm biểu tượng bánh răng (góc trên bên trái) → **Project settings**.
+   - Vào tab **Service accounts** → bấm **"Generate new private key"** →
+     xác nhận → 1 file `.json` sẽ được tải về máy bạn (file này giữ kín,
+     KHÔNG chia sẻ hay đăng công khai ở đâu cả).
+
+2. **Dán chìa khoá đó vào GitHub (dưới dạng "Secret" — GitHub sẽ giữ kín,
+   kể cả bạn cũng không xem lại được sau khi lưu):**
+   - Vào trang repo trên GitHub (github.com/I-Math-HighSchool/DGNL-KhaiTamER)
+     → **Settings** → mục **Secrets and variables** → **Actions**.
+   - Bấm **"New repository secret"**.
+   - Ô **Name**, gõ đúng: `FIREBASE_SERVICE_ACCOUNT_DGNL_2027`
+   - Ô **Secret**, mở file `.json` vừa tải bằng Notepad, copy TOÀN BỘ nội
+     dung, dán vào đây.
+   - Bấm **Add secret**.
+
+3. **Bật Firebase Hosting cho project (nếu chưa từng bật):**
+   - Vào Firebase Console → project `dgnl-2027` → mục **Hosting** (bên
+     trái, mục "Build") → nếu thấy nút **"Get started"** thì bấm và làm
+     theo (chỉ cần bấm qua các bước giới thiệu, không cần cài gì trên máy
+     bạn — phần cài đặt dòng lệnh có thể bỏ qua vì đã có sẵn trong repo).
+
+4. **Đưa code lên GitHub như bình thường** (qua GitHub Desktop, Commit rồi
+   Push lên nhánh `main`) — GitHub sẽ tự động chạy quy trình đăng web lên
+   Firebase Hosting (xem tiến trình ở tab **Actions** trên trang GitHub của
+   repo, có dấu tích xanh là xong). Web lúc này có thêm 2 địa chỉ mới (vẫn
+   dùng chung 1 web, chọn 1 trong 2 địa chỉ gửi cho học sinh):
+   - `https://dgnl-2027.web.app`
+   - `https://dgnl-2027.firebaseapp.com`
+
+5. **Sau khi xác nhận web chạy tốt ở địa chỉ Firebase Hosting mới**, bạn có
+   thể (không bắt buộc phải làm ngay):
+   - Chuyển repo GitHub sang **Private**: vào repo → **Settings** → cuộn
+     xuống mục **Danger Zone** → **Change visibility** → **Make private**.
+   - Tắt GitHub Pages (không dùng nữa): repo → **Settings** → **Pages** →
+     mục **Build and deployment**, đổi **Source** thành **None**.
+   - Muốn gắn tên miền riêng (nếu sau này mua) thì làm ngay trong Firebase
+     Console → **Hosting** → **Add custom domain**, dễ hơn cách làm với
+     GitHub Pages trước đây.
+
 ## 1. Cấu trúc thư mục
 
 ```
@@ -7,7 +62,7 @@ WebDGNL/
 ├── index.html                 (trang chính)
 ├── js/
 │   ├── firebase-config.js     (bạn cần điền cấu hình Firebase)
-│   ├── auth.js                (xử lý đăng nhập bằng mã học sinh + lưu lịch sử Firestore)
+│   ├── auth.js                (đăng nhập Gmail, kiểm tra danh sách học sinh, lưu lịch sử Firestore)
 │   └── app.js                 (engine tạo đề, chấm điểm)
 ├── data/
 │   ├── manifest.js            (danh sách các chuyên đề đang có)
@@ -32,55 +87,51 @@ WebDGNL/
    nhập bằng **Gmail của học sinh**, không dùng mã + mật khẩu riêng.)
 5. Vẫn trong mục **Authentication** → tab **Settings** → **Authorized
    domains** → bấm **Add domain** → thêm tên miền GitHub Pages của bạn
-   (ví dụ `i-math-highschool.github.io`) nếu chưa có sẵn.
+   — **bắt buộc có `dgnl.irismath.com`** (thiếu là học sinh bấm đăng nhập
+   Google sẽ báo lỗi "Tên miền này chưa được cấp phép").
 6. Vào mục **Firestore Database** → **Create database** → chọn chế độ
    **Production mode** → chọn khu vực gần Việt Nam (ví dụ
    `asia-southeast1`) → Create.
-7. Vào tab **Rules** của Firestore, dán quy tắc sau rồi **Publish** — cho
-   phép mỗi học sinh chỉ đọc/ghi được kết quả của chính mình, RIÊNG Gmail
-   giáo viên quản trị (`thuthuy611103@gmail.com`) được đọc TOÀN BỘ kết quả
-   (để dùng trang "Báo cáo kết quả học sinh" xuất Excel — xem mục 8):
+7. Vào tab **Rules** của Firestore, mở file **`firestore.rules`** trong
+   repo bằng Notepad, copy TOÀN BỘ nội dung dán đè vào ô Rules rồi bấm
+   **Publish**. Quy tắc này:
+   - chỉ Gmail **có trong danh sách học sinh** (collection `hocsinh`) mới
+     nộp bài/lưu kết quả được — chặn ngay ở máy chủ Firebase, kể cả khi
+     ai đó cố vượt qua màn hình đăng nhập;
+   - mỗi học sinh chỉ đọc được kết quả của chính mình, và chỉ "hỏi" được
+     email của chính mình có trong danh sách hay không (không xem được
+     danh sách của người khác);
+   - riêng Gmail giáo viên quản trị (`thuthuy611103@gmail.com`) được xem
+     toàn bộ kết quả và thêm/xoá danh sách học sinh.
 
-   ```
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /ketqua/{docId} {
-         allow create: if request.auth != null
-                        && request.auth.uid == request.resource.data.uid;
-         allow read: if request.auth != null
-                      && (request.auth.uid == resource.data.uid
-                          || request.auth.token.email == 'thuthuy611103@gmail.com');
-         allow update, delete: if false;
-       }
-     }
-   }
-   ```
-
-   **Quan trọng:** nếu chưa dán quy tắc mới này (bản cũ chỉ cho đọc kết quả
-   của chính mình), trang "Báo cáo kết quả học sinh" và trang "Xem lại bài
-   làm" (khi giáo viên mở link của học sinh khác) sẽ báo lỗi "Bạn không có
-   quyền xem dữ liệu này".
+   **Mỗi lần sửa file `firestore.rules` phải dán lại vào Console** — GitHub
+   chỉ tự đăng web (Hosting), không tự cập nhật Rules.
 
 ## 3. Cấp quyền vào web cho từng học sinh (danh sách Gmail được phép)
 
-Web này đăng nhập bằng **chính Gmail của học sinh** qua Google — không
-cần đặt mã học sinh hay mật khẩu riêng, Google đã lo việc xác thực. Bạn
-chỉ cần quản lý 1 **danh sách các Gmail được phép** vào web.
+Học sinh đăng nhập bằng **chính Gmail của mình** qua Google — không có mã
+hay mật khẩu riêng. Chỉ Gmail **giáo viên đã thêm vào danh sách** mới vào
+làm bài được; Gmail lạ đăng nhập sẽ bị đăng xuất ngay và báo "Email chưa
+được đăng ký sử dụng web này".
 
-**Cách thêm/bớt học sinh:**
+**Cách thêm/bớt học sinh** (không cần sửa code, không cần commit/push):
 
-1. Mở file `js/danh-sach-duoc-phep.js`.
-2. Thêm hoặc xoá dòng email trong mảng `window.DGNL_ALLOWED_EMAILS` (viết
-   đúng chính tả Gmail của học sinh, chữ thường).
-3. Lưu file, rồi đưa (commit + push) lên GitHub như bình thường (qua
-   GitHub Desktop) — không cần chạy script hay tạo tài khoản gì thêm.
+1. Vào **`https://dgnl.irismath.com/quan-ly-hoc-sinh.html`**, đăng nhập
+   bằng Gmail quản trị `thuthuy611103@gmail.com`.
+2. **Thêm:** dán vào khung "Thêm học sinh", mỗi dòng 1 em — `email` hoặc
+   `email, Họ và tên` (dán thẳng 2 cột từ Excel cũng được) → bấm **Thêm**.
+   Trang tự chuyển chữ thường, bỏ trùng, và từ chối các email nghi gõ nhầm
+   (VD `@gmai.com`, `@gmial.com`).
+3. **Xoá:** bấm nút **Xoá** cạnh email. Em đó không vào được nữa từ lần
+   đăng nhập kế tiếp; kết quả cũ vẫn giữ nguyên trong báo cáo.
 
-File này công khai (ai xem code web cũng thấy được danh sách email) nhưng
-**không hề chứa mật khẩu** nào, nên hoàn toàn an toàn khi đưa lên GitHub.
+Danh sách nằm trong Firestore (collection `hocsinh`, mã tài liệu = email
+viết thường) — **không còn công khai trong code web** như file
+`js/danh-sach-duoc-phep.js` trước đây (file đó đã bỏ).
 
-Học sinh dùng Gmail **không có trong danh sách** khi đăng nhập sẽ bị báo
-"Email chưa được đăng ký sử dụng web này".
+**Lưu ý:** phần câu hỏi (`data/*.js`) vẫn là file tĩnh trên Hosting — màn
+hình đăng nhập chặn việc làm bài, lưu điểm, xem lại; nhưng người rành kỹ
+thuật biết đường dẫn file vẫn tải được file câu hỏi thô.
 
 ## 4. Đưa web lên mạng (hosting)
 
@@ -130,8 +181,8 @@ màn hình để bạn bổ sung sau.
 
 - ✅ Chuyên đề riêng theo từng chương (dữ liệu từ thư mục `DanhGiaNangLuc`).
 - ✅ "Đề tổng hợp phần Toán ĐGNL" — bốc ngẫu nhiên câu hỏi từ mọi chuyên đề.
-- ✅ Đăng nhập bằng Gmail qua Google, chỉ cho phép các email trong danh
-  sách `js/danh-sach-duoc-phep.js` (mục 3).
+- ✅ Đăng nhập bằng Gmail qua Google, chỉ cho phép các email giáo viên đã
+  thêm ở trang `quan-ly-hoc-sinh.html` (mục 3), chặn cả ở Firestore Rules.
 - ✅ Lưu lịch sử điểm từng học sinh vào Firestore, xem lại được.
 - ⚠️ Các câu hỏi có hình ảnh chèn từ file `\includegraphics` (ảnh cắt từ
   PDF gốc) hiện KHÔNG có file ảnh đi kèm nên bị bỏ qua tạm thời — cần bổ

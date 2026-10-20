@@ -1,0 +1,50 @@
+// =========================================================================
+// FIRESTORE SECURITY RULES — web ĐGNL Online (dgnl.irismath.com)
+// =========================================================================
+// Dán TOÀN BỘ nội dung file này vào Firebase Console -> Firestore Database
+// -> tab "Rules" -> Publish. (GitHub tự deploy web nhưng KHÔNG tự deploy
+// file này — mỗi lần sửa file này phải dán lại vào Console.)
+//
+// - hocsinh/{email}: danh sách Gmail được phép. Mỗi học sinh chỉ "hỏi" được
+//   đúng email của chính mình (có hay không) — KHÔNG ai xem được cả danh
+//   sách, trừ giáo viên. Chỉ giáo viên được thêm/xoá.
+// - ketqua/{id}: chỉ học sinh CÓ TRONG DANH SÁCH mới nộp bài được; mỗi em
+//   chỉ đọc bài của mình; giáo viên đọc được tất cả.
+// =========================================================================
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function daDangNhap() {
+      return request.auth != null
+          && request.auth.token.email is string
+          && request.auth.token.email_verified == true;
+    }
+    function emailCuaToi() {
+      return request.auth.token.email.lower();
+    }
+    function laGiaoVien() {
+      return daDangNhap() && emailCuaToi() == 'thuthuy611103@gmail.com';
+    }
+    function duocPhep() {
+      return daDangNhap()
+          && (laGiaoVien()
+              || exists(/databases/$(database)/documents/hocsinh/$(emailCuaToi())));
+    }
+
+    match /hocsinh/{email} {
+      allow get: if daDangNhap() && emailCuaToi() == email;
+      allow read: if laGiaoVien();
+      allow create, update: if laGiaoVien() && email == email.lower();
+      allow delete: if laGiaoVien();
+    }
+
+    match /ketqua/{docId} {
+      allow create: if duocPhep()
+                    && request.auth.uid == request.resource.data.uid;
+      allow read: if laGiaoVien()
+                  || (duocPhep() && request.auth.uid == resource.data.uid);
+      allow update, delete: if false;
+    }
+  }
+}

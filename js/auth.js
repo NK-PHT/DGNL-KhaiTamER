@@ -2,12 +2,15 @@
 // ĐĂNG NHẬP BẰNG GOOGLE (Gmail) + DANH SÁCH ĐƯỢC PHÉP
 // =========================================================================
 // Học sinh đăng nhập bằng chính tài khoản Google (Gmail) của mình. Sau khi
-// đăng nhập, web kiểm tra email đó có nằm trong danh sách
-// window.DGNL_ALLOWED_EMAILS (xem js/danh-sach-duoc-phep.js) không:
+// đăng nhập, web hỏi Firestore xem có tài liệu hocsinh/<email> không (danh
+// sách do giáo viên quản lý ở trang quan-ly-hoc-sinh.html):
 //   - Nếu CÓ trong danh sách -> cho vào web bình thường.
 //   - Nếu KHÔNG có -> lập tức đăng xuất, báo "Email chưa được đăng ký".
 // Nhờ vậy chỉ những học sinh đã đăng ký gmail với giáo viên mới vào được,
 // mà giáo viên không cần tạo/tự đặt mật khẩu cho ai cả (Google lo việc đó).
+// Danh sách KHÔNG còn nằm công khai trong code web nữa, và Firestore Rules
+// (file firestore.rules) cũng chặn ở phía máy chủ: email ngoài danh sách
+// không thể nộp bài/lưu kết quả dù có tìm cách vượt qua màn hình đăng nhập.
 (function () {
     let app, auth, db;
     try {
@@ -25,10 +28,20 @@
         loadHistory: async function () { return []; }
     };
 
-    const DANH_SACH_DUOC_PHEP = (window.DGNL_ALLOWED_EMAILS || []).map(e => (e || '').trim().toLowerCase());
+    const TEACHER_EMAIL = 'thuthuy611103@gmail.com';
 
-    function duocPhep(email) {
-        return DANH_SACH_DUOC_PHEP.indexOf((email || '').trim().toLowerCase()) !== -1;
+    // Trả về 'ok' | 'khong-co' | 'loi'
+    async function kiemTraDuocPhep(user) {
+        const email = (user.email || '').trim().toLowerCase();
+        if (!email || !user.emailVerified) return 'khong-co';
+        if (email === TEACHER_EMAIL) return 'ok';
+        try {
+            const snap = await db.collection('hocsinh').doc(email).get();
+            return snap.exists ? 'ok' : 'khong-co';
+        } catch (e) {
+            console.error('Lỗi khi kiểm tra danh sách học sinh:', e);
+            return e && e.code === 'permission-denied' ? 'khong-co' : 'loi';
+        }
     }
 
     function showLoginError(msg) {
@@ -66,18 +79,24 @@
     }
 
     if (auth) {
-        auth.onAuthStateChanged(function (user) {
-            setLoading(false);
+        auth.onAuthStateChanged(async function (user) {
             if (user) {
-                if (!duocPhep(user.email)) {
-                    auth.signOut();
-                    showLoginError('Email ' + user.email + ' chưa được đăng ký sử dụng web này. Vui lòng liên hệ giáo viên để được thêm vào danh sách.');
+                setLoading(true);
+                const kq = await kiemTraDuocPhep(user);
+                setLoading(false);
+                if (kq !== 'ok') {
+                    const email = user.email;
+                    await auth.signOut();
+                    showLoginError(kq === 'loi'
+                        ? 'Không kiểm tra được danh sách học sinh (lỗi kết nối). Vui lòng tải lại trang và thử lại.'
+                        : 'Email ' + email + ' chưa được đăng ký sử dụng web này. Vui lòng liên hệ giáo viên để được thêm vào danh sách.');
                     return;
                 }
                 window.DGNL_AUTH.user = user;
                 window.DGNL_AUTH.db = db;
                 showApp(user);
             } else {
+                setLoading(false);
                 window.DGNL_AUTH.user = null;
                 showLogin();
             }
