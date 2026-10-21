@@ -157,20 +157,20 @@
             }
         };
 
+        // Chỉ lọc theo uid (KHÔNG orderBy trên Firestore) rồi tự sắp xếp ở
+        // trình duyệt — nhờ vậy không cần tạo chỉ mục ghép (composite index).
+        // Lỗi thì ném ra để khung Lịch sử hiện đúng thông báo lỗi.
         window.DGNL_AUTH.loadHistory = async function () {
             if (!db || !window.DGNL_AUTH.user) return [];
             const uid = window.DGNL_AUTH.user.uid;
-            try {
-                const snap = await db.collection('ketqua')
-                    .where('uid', '==', uid)
-                    .orderBy('thoiDiem', 'desc')
-                    .limit(50)
-                    .get();
-                return snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
-            } catch (e) {
-                console.error('Lỗi khi tải lịch sử từ Firestore:', e);
-                return [];
-            }
+            const snap = await db.collection('ketqua')
+                .where('uid', '==', uid)
+                .limit(300)
+                .get();
+            const ms = d => (d.thoiDiem && d.thoiDiem.toMillis) ? d.thoiDiem.toMillis() : Date.now();
+            return snap.docs.map(d => Object.assign({ id: d.id }, d.data()))
+                .sort((x, y) => ms(y) - ms(x))
+                .slice(0, 50);
         };
     } else {
         showLoginError('Chưa cấu hình Firebase (xem js/firebase-config.js).');

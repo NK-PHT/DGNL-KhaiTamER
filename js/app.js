@@ -474,7 +474,14 @@ async function hienThiLichSu() {
     const body = document.getElementById('history-body');
     body.innerHTML = '<div class="text-center text-muted py-4">Đang tải lịch sử...</div>';
 
-    const history = await (window.DGNL_AUTH && window.DGNL_AUTH.loadHistory ? window.DGNL_AUTH.loadHistory() : []);
+    let history;
+    try {
+        history = await (window.DGNL_AUTH && window.DGNL_AUTH.loadHistory ? window.DGNL_AUTH.loadHistory() : []);
+    } catch (e) {
+        console.error('Lỗi khi tải lịch sử từ Firestore:', e);
+        body.innerHTML = '<div class="text-center text-danger py-4">Không tải được lịch sử (' + (e.code || e.message || 'lỗi') + '). Vui lòng tải lại trang và thử lại.</div>';
+        return;
+    }
     if (!history || history.length === 0) {
         body.innerHTML = '<div class="text-center text-muted py-4">Chưa có lịch sử làm bài nào.</div>';
         return;
