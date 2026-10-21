@@ -132,7 +132,7 @@
 
         // ---- Lưu / đọc lịch sử làm bài trong Firestore ----
         window.DGNL_AUTH.saveResult = async function (result) {
-            if (!db || !window.DGNL_AUTH.user) return;
+            if (!db || !window.DGNL_AUTH.user) return false;
             const uid = window.DGNL_AUTH.user.uid;
             try {
                 await db.collection('ketqua').add({
@@ -150,8 +150,10 @@
                     chiTiet: result.chiTiet || [],
                     thoiDiem: firebase.firestore.FieldValue.serverTimestamp()
                 });
+                return true;
             } catch (e) {
                 console.error('Lỗi khi lưu kết quả vào Firestore:', e);
+                return false;
             }
         };
 

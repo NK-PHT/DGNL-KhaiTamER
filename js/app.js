@@ -372,6 +372,29 @@ function updateTimerDisplay() {
 }
 
 // ---------------- 5. NỘP BÀI & CHẤM ĐIỂM ----------------
+// Lấy HTML từng cụm câu (đã chấm), thay công thức MathJax đã vẽ (SVG) bằng
+// mã LaTeX gốc để dữ liệu lưu Firestore gọn nhẹ.
+function layChiTietGon() {
+    const map = new Map();
+    try {
+        const doc = window.MathJax && MathJax.startup && MathJax.startup.document;
+        if (doc && doc.math) {
+            for (const it of doc.math) {
+                if (it.typesetRoot) map.set(it.typesetRoot, it.display ? '\\[' + it.math + '\\]' : '\\(' + it.math + '\\)');
+            }
+        }
+    } catch (e) { console.warn('Không đọc được công thức MathJax:', e); }
+    return Array.from(document.querySelectorAll('#questions-container > .group-block')).map(g => {
+        const banSao = g.cloneNode(true);
+        const goc = g.querySelectorAll('mjx-container');
+        banSao.querySelectorAll('mjx-container').forEach((n, i) => {
+            const tex = map.get(goc[i]);
+            if (tex != null) n.replaceWith(document.createTextNode(tex));
+        });
+        return banSao.outerHTML;
+    });
+}
+
 function submitExam() {
     if (!currentExam || currentExam.submitted) return;
     currentExam.submitted = true;
@@ -404,7 +427,11 @@ function submitExam() {
     // để dùng cho trang "Xem lại bài làm" (xem-lai.html): giáo viên hoặc
     // chính học sinh mở link riêng vẫn thấy đúng y hệt bài đã làm (kể cả
     // phần dữ kiện chung của cụm câu), không cần tạo lại đề.
-    const chiTietHtml = Array.from(document.querySelectorAll('#questions-container > .group-block')).map(g => g.outerHTML);
+    // LƯU Ý: công thức đã được MathJax vẽ thành SVG rất nặng (1 đề 42 câu
+    // ~1,3 MB, vượt giới hạn 1 MB/bài của Firestore -> không lưu được). Vì
+    // vậy thay mỗi công thức đã vẽ bằng lại mã LaTeX gốc (\(...\) / \[...\])
+    // — trang xem-lai.html sẽ cho MathJax vẽ lại. Còn ~100 KB/đề.
+    const chiTietHtml = layChiTietGon();
 
     const diem = Math.round((soDung / soCau) * 10 * 100) / 100;
     const scoreBox = document.getElementById('score-wrap');
@@ -417,11 +444,20 @@ function submitExam() {
         : (Math.round((Date.now() - currentExam.startedAt) / 1000));
 
     if (window.DGNL_AUTH && window.DGNL_AUTH.saveResult) {
-        window.DGNL_AUTH.saveResult({
-            chuyenDe: currentExam.chuyenDeTen,
-            soCau, soDung, diem,
-            thoiGianLamBai,
-            chiTiet: chiTietHtml
+        const ketQua = { chuyenDe: currentExam.chuyenDeTen, soCau, soDung, diem, thoiGianLamBai, chiTiet: chiTietHtml };
+        // Phòng hờ: nếu vẫn quá nặng thì bỏ phần chi tiết, vẫn lưu điểm.
+        if (new Blob([JSON.stringify(chiTietHtml)]).size > 900 * 1024) ketQua.chiTiet = [];
+        Promise.resolve(window.DGNL_AUTH.saveResult(ketQua)).then(daLuu => {
+            const note = document.createElement('div');
+            note.style.cssText = 'font-size:0.85rem;font-weight:600;margin-top:6px;';
+            if (daLuu === false) {
+                note.style.color = '#b91c1c';
+                note.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Chưa lưu được kết quả bài này (lỗi kết nối hoặc quyền truy cập). Hãy chụp màn hình điểm gửi giáo viên.';
+            } else {
+                note.style.color = '#15803d';
+                note.innerHTML = '<i class="fa-solid fa-circle-check"></i> Đã lưu kết quả vào lịch sử làm bài.';
+            }
+            scoreBox.appendChild(note);
         });
     }
 
