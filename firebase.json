@@ -12,7 +12,8 @@
       "test2.html",
       "index-1.html",
       "firestore.rules",
-      "js/app-1.js"
+      "js/app-1.js",
+      "cong-cu-google-sheet/**"
     ],
     "headers": [
       {

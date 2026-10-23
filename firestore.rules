@@ -10,6 +10,13 @@
 //   sách, trừ giáo viên. Chỉ giáo viên được thêm/xoá.
 // - ketqua/{id}: chỉ học sinh CÓ TRONG DANH SÁCH mới nộp bài được; mỗi em
 //   chỉ đọc bài của mình; giáo viên đọc được tất cả.
+// - btvn/{tuan}: thông tin bài tập tuần (tên, số câu, hạn nộp, link đề) —
+//   học sinh trong danh sách đọc được, chỉ giáo viên sửa.
+// - btvn_dapan/{tuan}: đáp án — học sinh CHỈ đọc được sau hạn nộp VÀ khi
+//   đã nộp bài tuần đó (nộp trễ cũng được, nhưng nộp rồi mới thấy).
+// - btvn_bainop/{uid}_{tuan}: phiếu trả lời — mỗi em chỉ đọc/ghi phiếu của
+//   mình; được nộp lại nhiều lần TRƯỚC hạn; sau hạn chỉ được nộp 1 lần (trễ)
+//   nếu chưa nộp, nộp rồi thì khoá. Giáo viên đọc tất cả.
 // =========================================================================
 rules_version = '2';
 service cloud.firestore {
@@ -36,6 +43,49 @@ service cloud.firestore {
       allow get: if daDangNhap() && emailCuaToi() == email;
       allow read: if laGiaoVien();
       allow create, update: if laGiaoVien() && email == email.lower();
+      allow delete: if laGiaoVien();
+    }
+
+    function tuan(t) {
+      return get(/databases/$(database)/documents/btvn/$(t)).data;
+    }
+    function phieuHopLe(id) {
+      let d = request.resource.data;
+      return duocPhep()
+          && d.keys().hasOnly(['uid', 'email', 'ten', 'tuanId', 'traLoi', 'nopLuc'])
+          && d.uid == request.auth.uid
+          && d.email == emailCuaToi()
+          && d.ten is string && d.ten.size() <= 100
+          && d.tuanId is string
+          && id == request.auth.uid + '_' + d.tuanId
+          && exists(/databases/$(database)/documents/btvn/$(d.tuanId))
+          && d.traLoi is string && d.traLoi.size() == tuan(d.tuanId).soCau
+          && d.traLoi.matches('^[ABCD-]+$')
+          && d.nopLuc == request.time;
+    }
+
+    match /btvn/{t} {
+      allow read: if duocPhep();
+      allow write: if laGiaoVien();
+    }
+
+    match /btvn_dapan/{t} {
+      allow get: if laGiaoVien()
+                 || (duocPhep()
+                     && tuan(t).hanNop < request.time
+                     && exists(/databases/$(database)/documents/btvn_bainop/$(request.auth.uid + '_' + t)));
+      allow list: if laGiaoVien();
+      allow write: if laGiaoVien();
+    }
+
+    match /btvn_bainop/{id} {
+      allow get: if laGiaoVien()
+                 || (duocPhep() && id.matches(request.auth.uid + '_.+'));
+      allow list: if laGiaoVien();
+      allow create: if phieuHopLe(id);
+      allow update: if phieuHopLe(id)
+                    && resource.data.uid == request.auth.uid
+                    && tuan(resource.data.tuanId).hanNop > request.time;
       allow delete: if laGiaoVien();
     }
 

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bài tập tuần - ĐGNL Khai Tâm</title>
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <style>
+        :root { color-scheme: light; --g: #16a34a; --gd: #15803d; }
+        body { background: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; color: #1e293b; margin: 0; min-height: 100vh; }
+        #login-overlay { position: fixed; inset: 0; z-index: 2000; background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-card { background: #fff; border-radius: 20px; padding: 40px 32px; max-width: 420px; width: 100%; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+        .login-card .logo-title { font-size: 1.25rem; font-weight: 800; color: var(--gd); margin-bottom: 6px; }
+        .login-card .logo-sub { color: #64748b; font-size: .9rem; margin-bottom: 24px; }
+        .btn-login-submit { display: flex; align-items: center; justify-content: center; gap: 10px; background: #fff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 12px 18px; width: 100%; font-weight: 700; color: #1e293b; }
+        .btn-login-submit img { width: 20px; height: 20px; }
+        .login-error { display: none; margin-top: 16px; padding: 12px; border-radius: 10px; background: #fee2e2; color: #b91c1c; font-size: .85rem; font-weight: 600; }
+        .login-loading { display: none; margin-top: 16px; color: #64748b; font-size: .85rem; }
+
+        .app-header { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 16px; position: sticky; top: 0; z-index: 1030; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+        .main-title { font-size: 1.05rem; font-weight: 800; color: var(--gd); margin: 0; }
+        .wrap { max-width: 980px; margin: 0 auto; padding: 16px; }
+        .card-box { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 18px; margin-bottom: 16px; }
+        .tuan-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 8px; cursor: pointer; background: #fff; width: 100%; text-align: left; }
+        .tuan-item:hover, .tuan-item.active { border-color: var(--g); background: #f0fdf4; }
+        .badge-st { font-size: .75rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+        .st-ok { background: #dcfce7; color: #166534; } .st-late { background: #fef3c7; color: #92400e; }
+        .st-none { background: #f1f5f9; color: #475569; } .st-miss { background: #fee2e2; color: #b91c1c; }
+
+        .phieu { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px 18px; }
+        .khoi-10 { grid-column: 1 / -1; font-size: .8rem; font-weight: 700; color: #64748b; border-bottom: 1px dashed #cbd5e1; margin-top: 8px; padding-bottom: 2px; }
+        .dong { display: flex; align-items: center; gap: 6px; }
+        .dong .so { width: 34px; text-align: right; font-weight: 700; font-size: .85rem; color: #334155; }
+        .o { width: 34px; height: 34px; border-radius: 50%; border: 2px solid #94a3b8; background: #fff; font-weight: 700; font-size: .85rem; color: #475569; padding: 0; }
+        .o.chon { background: #1e293b; border-color: #1e293b; color: #fff; }
+        .o:disabled { cursor: default; }
+        .o.dung { background: #16a34a; border-color: #16a34a; color: #fff; }
+        .o.sai { background: #ef4444; border-color: #ef4444; color: #fff; }
+        .o.dapan { border-color: #16a34a; border-width: 3px; color: #16a34a; }
+        .thanh-nop { position: sticky; bottom: 0; background: #fff; border-top: 1px solid #e2e8f0; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; z-index: 10; }
+        .msg { padding: 10px 12px; border-radius: 10px; font-size: .88rem; margin-bottom: 12px; }
+        .msg-ok { background: #dcfce7; color: #166534; } .msg-warn { background: #fef3c7; color: #92400e; } .msg-err { background: #fee2e2; color: #b91c1c; } .msg-info { background: #eff6ff; color: #1e40af; }
+        .diem-to { font-size: 1.6rem; font-weight: 800; color: var(--gd); }
+    </style>
+</head>
+<body>
+    <div id="login-overlay">
+        <div class="login-card">
+            <div class="logo-title">Bài tập tuần — ĐGNL Khai Tâm</div>
+            <div class="logo-sub">Đăng nhập bằng Gmail đã đăng ký với giáo viên</div>
+            <button type="button" class="btn-login-submit" id="btn-dang-nhap">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt=""> Đăng nhập bằng Google
+            </button>
+            <div class="login-loading" id="login-loading"><i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý đăng nhập...</div>
+            <div class="login-error" id="login-error"></div>
+        </div>
+    </div>
+
+    <div id="app-root" style="display:none;">
+        <header class="app-header">
+            <h1 class="main-title"><i class="fa-solid fa-calendar-week"></i> Bài tập tuần</h1>
+            <div class="d-flex gap-2 align-items-center">
+                <a class="btn btn-outline-success btn-sm" href="index.html"><i class="fa-solid fa-house"></i> Luyện đề</a>
+                <span class="small text-muted" id="user-email"></span>
+                <button class="btn btn-outline-secondary btn-sm" id="btn-logout" title="Đăng xuất"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+        </header>
+        <div class="wrap">
+            <div class="card-box">
+                <div class="fw-bold mb-2">Chọn tuần</div>
+                <div id="ds-tuan"><div class="text-muted small"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</div></div>
+            </div>
+            <div id="khung-phieu" style="display:none;">
+                <div class="card-box">
+                    <div class="d-flex justify-content-between flex-wrap gap-2 align-items-start">
+                        <div>
+                            <div class="fw-bold fs-5" id="p-ten"></div>
+                            <div class="small text-muted" id="p-han"></div>
+                        </div>
+                        <a class="btn btn-success btn-sm" id="p-link-de" target="_blank" rel="noopener" style="display:none;"><i class="fa-solid fa-file-pdf"></i> Mở đề</a>
+                    </div>
+                    <div id="p-ket-qua" class="mt-3"></div>
+                    <div id="p-msg" class="mt-2"></div>
+                    <div class="small text-muted mb-2" id="p-huong-dan">Làm bài trên giấy, sau đó bấm chọn đáp án cho từng câu rồi bấm <b>Nộp bài</b>. Trước hạn nộp em có thể sửa và nộp lại.</div>
+                    <div class="phieu" id="phieu"></div>
+                </div>
+                <div class="thanh-nop" id="thanh-nop">
+                    <div class="small"><b id="dem-chon">0</b> / <span id="tong-cau">0</span> câu đã chọn <span class="text-muted" id="nhap-luu"></span></div>
+                    <button class="btn btn-success fw-bold px-4" id="btn-nop"><i class="fa-solid fa-paper-plane"></i> Nộp bài</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/firebase-config.js?v=20261022a"></script>
+    <script src="js/btvn.js?v=20261022a"></script>
+</body>
+</html>

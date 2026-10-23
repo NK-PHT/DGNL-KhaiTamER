@@ -177,6 +177,53 @@ màn hình để bạn bổ sung sau.
   `js/xem-lai.js` và `js/bao-cao-ket-qua.js`, VÀ sửa lại đúng địa chỉ đó
   trong quy tắc Firestore ở mục 2 (bước 7).
 
+## 9. Bài tập tuần (BTVN) — cả lớp làm chung 1 đề, nộp phiếu trả lời
+
+**Ý tưởng:** đề vẫn là file PDF/giấy như bình thường (để in, sửa trên lớp).
+Web chỉ là **phiếu trả lời trắc nghiệm**: học sinh làm trên giấy rồi bấm
+chọn A/B/C/D cho từng câu và nộp. Web tự chấm, tự ghi nhận ai nộp đúng hạn.
+
+**Giáo viên** — `quan-ly-btvn.html` (đăng nhập Gmail quản trị):
+1. Điền tên bài, số câu (mặc định 120), hạn nộp, link đề (không bắt buộc —
+   VD link Google Drive file PDF), dán đáp án (`ABCD...` liền, hoặc dạng
+   `1A 2B 3.C`). Đáp án có thể nhập sau.
+2. Bấm **Lưu** → copy link (nút 🔗) gửi lớp, hoặc học sinh vào trang chính
+   bấm nút xanh **"Bài tập tuần"**.
+3. Bấm **Kết quả**: bảng học sinh (đúng hạn / trễ / chưa nộp, số câu đúng,
+   thang 10), tab **Thống kê từng câu** (câu nào sai nhiều, học sinh hay
+   chọn nhầm đáp án nào — dùng để chọn câu sửa trên lớp), **Xuất Excel**.
+4. Sửa đáp án sau khi giao: bấm **Sửa** → sửa → Lưu, điểm tự tính lại.
+
+**Học sinh** — `btvn.html`:
+- Trước hạn: nộp, sửa, nộp lại thoải mái; chỉ thấy "Đã nộp", CHƯA thấy
+  điểm/đáp án. Đáp án chọn dở được lưu nháp trên máy.
+- Sau hạn: thấy điểm + đáp án đúng (chỉ khi đã nộp). Chưa nộp thì vẫn nộp
+  được 1 lần, ghi **nộp trễ**, nộp rồi là khoá.
+- Tất cả quyền trên do `firestore.rules` kiểm soát ở máy chủ.
+
+### Google Sheet tự tô màu ai đã nộp
+
+Làm 1 lần (bằng Gmail `thuthuy611103@gmail.com` — đúng tài khoản sở hữu
+project Firebase):
+1. Tạo 1 Google Sheet mới (VD "Nộp BTVN lớp ĐGNL").
+2. Menu **Tiện ích mở rộng (Extensions) → Apps Script**.
+3. Bánh răng **Cài đặt dự án (Project settings)** → tick **"Hiển thị tệp
+   kê khai appsscript.json trong trình chỉnh sửa"**.
+4. Quay lại **Trình chỉnh sửa (Editor)**:
+   - Mở `appsscript.json`, xoá hết, dán nội dung file
+     `cong-cu-google-sheet/appsscript.json`.
+   - Mở `Code.gs` (Mã.gs), xoá hết, dán nội dung file
+     `cong-cu-google-sheet/BangNopBai.gs`. Bấm 💾 Lưu.
+5. Chọn hàm `batTuDong` ở thanh trên → **Chạy (Run)** → cấp quyền (chọn
+   tài khoản → Nâng cao → Đi tới … → Cho phép).
+6. Quay lại Sheet: có tab **"Nộp BTVN"**, tự cập nhật mỗi 10 phút. Menu
+   **ĐGNL → Cập nhật ngay** để cập nhật tức thì.
+
+Màu: **xanh** = nộp đúng hạn (kèm số câu đúng), **vàng** = nộp trễ,
+**đỏ** = quá hạn chưa nộp, trống = chưa tới hạn. Mỗi tuần là 1 cột, mỗi
+học sinh (theo danh sách Gmail) là 1 dòng. Đừng sửa tay trong tab này — mỗi
+lần cập nhật sẽ vẽ lại; muốn ghi chú thì tạo tab khác.
+
 ## 6. Các phần đã hoàn thành / còn giới hạn
 
 - ✅ Chuyên đề riêng theo từng chương (dữ liệu từ thư mục `DanhGiaNangLuc`).
