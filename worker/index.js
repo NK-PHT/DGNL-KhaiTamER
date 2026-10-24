@@ -197,6 +197,23 @@ function rutDe(yc) {
   return { ten: t.ten + ' — đề trộn ngẫu nhiên', nhom, phut: t.phut, bd, coDinhGio: true };
 }
 
+// Mã bí mật để Google Sheet đọc bảng thống kê
+const KHOA_THONG_KE = 'iris-tk-7f3k29qx';
+function bangThongKe() {
+  const o = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const h = [['Nhóm', 'Mục', 'Số câu', 'Số cụm/đề']];
+  let tongCD = 0;
+  KHO.chuyenDe.forEach(c => { const n = demCau(c.nhom); tongCD += n; h.push(['Toán – chuyên đề', c.ten, n, c.nhom.length]); });
+  h.push(['Toán – chuyên đề', 'Tổng các chuyên đề', tongCD, '']);
+  h.push(['Đề thi thật (Toán + Logic)', 'Số đề', KHO.deThat.reduce((s, d) => s + demCau(d.nhom), 0), KHO.deThat.length]);
+  for (const [k, ten] of [['tv', 'Tiếng Việt'], ['anh', 'Tiếng Anh'], ['kh', 'Suy luận khoa học']]) {
+    h.push(['Đề thi thử – ' + ten, 'Các đề', KHO.deMon.reduce((s, d) => s + demCau(d[k]), 0), KHO.deMon.filter(d => demCau(d[k])).length]);
+  }
+  const tong = tongCD + KHO.deThat.reduce((s, d) => s + demCau(d.nhom), 0) + KHO.deMon.reduce((s, d) => s + demCau(d.tv) + demCau(d.anh) + demCau(d.kh), 0);
+  h.push(['Toàn bộ kho', 'Cập nhật ' + new Date(BUILD_LUC).toISOString().slice(0, 10), tong, '']);
+  return '\ufeff' + h.map(r => r.map(o).join(',')).join('\n') + '\n';
+}
+const BUILD_LUC = KHO.luc || Date.now();
 function thongTin() {
   return {
     chuyenDe: KHO.chuyenDe.map(c => ({ id: c.id, ten: c.ten, soCau: demCau(c.nhom) })),
@@ -211,6 +228,11 @@ export default {
     const p = url.pathname;
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: dauCors(request) });
     if (p === '/api/ping') return json(request, { ok: true });
+    // Bảng thống kê kho cho Google Sheet: =IMPORTDATA("https://dgnl-api.thuthuy611103.workers.dev/api/thongke?khoa=...")
+    if (p === '/api/thongke') {
+      if (url.searchParams.get('khoa') !== KHOA_THONG_KE) return json(request, { loi: 'Khong tim thay' }, 404);
+      return new Response(bangThongKe(), { headers: { 'content-type': 'text/csv; charset=utf-8', 'cache-control': 'no-store' } });
+    }
     if (p !== '/api/thongtin' && p !== '/api/de') return json(request, { loi: 'Khong tim thay' }, 404);
     let ai;
     try { ai = await nguoiDung(request); } catch (e) {

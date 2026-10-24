@@ -30,7 +30,8 @@ dsMon.forEach(m => chay(m.file));
 const kho = {
   chuyenDe: dsCD.map(m => ({ id: m.id, ten: m.ten, nhom: (window.DGNL_CHUYEN_DE || {})[m.id] || [] })),
   deThat: window.DGNL_DE_THAT || [],
-  deMon: dsMon.map(m => (window.DGNL_DE_MON || {})[m.id]).filter(Boolean)
+  deMon: dsMon.map(m => (window.DGNL_DE_MON || {})[m.id]).filter(Boolean),
+  luc: Date.now()
 };
 const dem = n => n.reduce((s, g) => s + g.cauHoi.length, 0);
 fs.writeFileSync(path.join(ROOT, 'worker', 'kho.json'), JSON.stringify(kho));
