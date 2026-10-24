@@ -167,6 +167,7 @@ th { background: #eef2f5 !important; color: var(--muc-nhat) !important; font-wei
 .bang-de { border-collapse: collapse; margin: 10px 0; font-size: .92rem; max-width: 100%; display: block; overflow-x: auto; }
 .bang-de td { border: 1px solid var(--vien); padding: 5px 9px; vertical-align: top; }
 .canh-bao-lg { color: var(--vang); display: block; font-style: normal; }
+.ct { white-space: nowrap; }  /* công thức đơn giản hiện bằng chữ thường */
 mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: hidden; display: block !important; }
 .question-text, .explain-box, .form-check-label, .shared-context { word-wrap: break-word; overflow-wrap: break-word; }
 

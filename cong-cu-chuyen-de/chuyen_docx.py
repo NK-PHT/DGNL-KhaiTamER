@@ -136,6 +136,21 @@ class Ctx:
         return re.sub(r'%\d', s, txt or (s + '.'))
 
     # ---- ảnh ----
+    def mathtype_tex(self, rid):
+        """Mã TeX gốc lưu trong công thức MathType (nếu có), không có thì None."""
+        try:
+            import olefile, io
+            blob = self.doc.part.related_parts[rid].blob
+            o = olefile.OleFileIO(io.BytesIO(blob))
+            if not o.exists('Equation Native'): return None
+            d = o.openstream('Equation Native').read()
+            m = re.search(rb'TeX Input Language\x00([^\x00]+)\x00', d)
+            if not m: return None
+            try: return m.group(1).decode('utf-8').strip()
+            except UnicodeDecodeError: return m.group(1).decode('cp1252').strip()
+        except Exception:
+            return None
+
     def image(self, rid, w=None, hh=None):
         if not rid: return ''
         try:
@@ -188,6 +203,86 @@ def run_fmt(r):
     va = rp.find(W + 'vertAlign').get(W + 'val') if rp is not None and rp.find(W + 'vertAlign') is not None else None
     return dict(b=on('b'), i=on('i'), u=on('u'), hl=hl or bool(shd), color=color, va=va)
 
+# ---------- Công thức: TeX -> HTML chữ thường (để cùng phông với đề) ----------
+_GREEK = {'alpha':'α','beta':'β','gamma':'γ','delta':'δ','epsilon':'ε','varepsilon':'ε','theta':'θ','lambda':'λ','mu':'μ','nu':'ν',
+          'pi':'π','rho':'ρ','sigma':'σ','tau':'τ','phi':'φ','varphi':'φ','omega':'ω','eta':'η','xi':'ξ','zeta':'ζ','kappa':'κ','chi':'χ','psi':'ψ',
+          'Delta':'Δ','Omega':'Ω','Sigma':'Σ','Phi':'Φ','Lambda':'Λ','Gamma':'Γ','Pi':'Π','Theta':'Θ'}
+_SYM = {'cdot':'·','times':'×','approx':'≈','le':'≤','leq':'≤','ge':'≥','geq':'≥','ne':'≠','neq':'≠','pm':'±','to':'→','rightarrow':'→',
+        'Rightarrow':'⇒','leftarrow':'←','leftrightarrow':'↔','rightleftharpoons':'⇌','longrightarrow':'⟶','circ':'°','degree':'°','infty':'∞',
+        'downarrow':'↓','uparrow':'↑','div':'÷','prime':'′','ldots':'…','dots':'…','%':'%',',':'\u2009',';':' ',':':' ','!':'',' ':' ',
+        'quad':' ','qquad':'  ','{':'{','}':'}','$':'$','#':'#','&':'&','_':'_','sim':'~','propto':'∝','in':'∈','perp':'⊥','parallel':'∥',
+        'angle':'∠','triangle':'△','Delta':'Δ','cdots':'⋯','lt':'<','gt':'>','bullet':'•','star':'*','ell':'ℓ','hbar':'ℏ'}
+_KHOI_PHUC_TAP = re.compile(r'\\(frac|dfrac|tfrac|sqrt|sum|int|lim|prod|overline|overrightarrow|vec|hat|bar|begin|matrix|array|binom|underbrace|overset|underset|stackrel|xrightarrow|log|ln|sin|cos|tan)\b')
+
+def _doc_nhom(t, i):
+    """Đọc 1 nhóm sau _ hoặc ^ : {...} hoặc 1 ký tự / 1 lệnh. Trả về (chuỗi, vị trí mới)."""
+    if i < len(t) and t[i] == '{':
+        sau, j = 1, i + 1
+        while j < len(t) and sau:
+            if t[j] == '{' and t[j-1] != '\\': sau += 1
+            elif t[j] == '}' and t[j-1] != '\\': sau -= 1
+            j += 1
+        return t[i+1:j-1], j
+    if i < len(t) and t[i] == '\\':
+        m = re.match(r'\\([A-Za-z]+|.)', t[i:])
+        return m.group(0), i + len(m.group(0))
+    return (t[i] if i < len(t) else ''), i + 1
+
+def tex_sang_html(tex, long=False):
+    """Đổi TeX đơn giản (chỉ số, số mũ, đơn vị, chữ Hy Lạp, ký hiệu) sang HTML thường.
+    Trả về None nếu công thức phức tạp (phân số, căn...) — khi đó dùng MathJax."""
+    t = (tex or '').strip()
+    if not t or _KHOI_PHUC_TAP.search(t): return None
+    t = re.sub(r'\s,\s', r'\\,', t)        # "2650 , kg" (gõ nhầm dấu phẩy làm khoảng cách)
+    out = []; i = 0
+    while i < len(t):
+        c = t[i]
+        if c == '\\':
+            m = re.match(r'\\([A-Za-z]+|.)', t[i:]); cmd = m.group(1); i += len(m.group(0))
+            if cmd in ('text', 'mathrm', 'textrm', 'mathbf', 'textbf', 'mathit', 'textit', 'operatorname', 'mbox', 'rm', 'mathsf'):
+                if cmd == 'rm': continue
+                while i < len(t) and t[i] == ' ': i += 1
+                g, i = _doc_nhom(t, i)
+                h = tex_sang_html(g) if cmd not in ('text', 'mbox', 'textrm') else H.escape(g)
+                if h is None: return None
+                out.append(f'<b>{h}</b>' if cmd in ('mathbf', 'textbf') else h)
+            elif cmd in ('left', 'right', 'big', 'Big', 'bigg', 'Bigg', 'displaystyle', 'limits', 'nolimits'):
+                if i < len(t) and t[i] == '.': i += 1
+                continue
+            elif cmd in _GREEK: out.append(_GREEK[cmd])
+            elif cmd in _SYM: out.append(_SYM[cmd])
+            else: return None
+        elif c in '_^':
+            g, i = _doc_nhom(t, i + 1)
+            if c == '^' and g.strip() in ('\\circ', 'o', '\\degree'): out.append('°'); continue
+            h = tex_sang_html(g, long=True)
+            if h is None: return None
+            out.append(f'<sub>{h}</sub>' if c == '_' else f'<sup>{h}</sup>')
+        elif c in '{}': i += 1
+        elif c == '-': out.append('−' if long or not out or out[-1].strip() in ('', '(', '=') else ' − '); i += 1
+        elif c == '~': out.append(' '); i += 1
+        elif c in ' \t\n': i += 1          # TeX bỏ qua khoảng trắng trong công thức
+        elif c in '=<>': out.append(' ' + H.escape(c) + ' '); i += 1
+        elif c == '+' and not long: out.append(' + '); i += 1
+        else: out.append(H.escape(c)); i += 1
+    s = ''.join(out)
+    s = re.sub(r'\s*([≈≤≥→⇒±×⇌])\s*', r' \1 ', s)
+    if not long: s = re.sub(r'(?<=[0-9])\((?=[A-Za-zμΩ°%])', ' (', s)   # "81,7 (kJ)" 
+    return re.sub(r'\s+', ' ', s).strip()
+
+def cong_thuc_html(tex, block=False):
+    h = None if block else tex_sang_html(tex)
+    if h is not None: return f'<span class="ct">{h}</span>'
+    return H.escape(('\\[' + tex + '\\]') if block else ('\\(' + tex + '\\)'))
+
+_O_ = '{urn:schemas-microsoft-com:office:office}'
+
+def _ct_tu_bocngoac(tex):
+    # next_math trả về '\(..\)' hoặc '\[..\]'
+    if tex.startswith('\\(') and tex.endswith('\\)'): return cong_thuc_html(tex[2:-2])
+    if tex.startswith('\\[') and tex.endswith('\\]'): return cong_thuc_html(tex[2:-2], block=True)
+    return H.escape(tex)
+
 
 def para_segments(ctx, p):
     """Danh sách (html, text, fmt) cho từng run/hình/công thức trong đoạn."""
@@ -211,6 +306,12 @@ def para_segments(ctx, p):
                         img = ctx.image(b.get(R_ + 'embed') if b is not None else None, *drawing_size(sub))
                         if img: segs.append((img, ' ', dict(f, img=True)))
                     elif sub.tag in (W + 'object', W + 'pict'):
+                        ole = sub.find('.//' + _O_ + 'OLEObject')
+                        if ole is not None and (ole.get('ProgID') or '').startswith('Equation.DSMT'):
+                            tex = ctx.mathtype_tex(ole.get(R_ + 'id'))
+                            if tex:
+                                segs.append((cong_thuc_html(tex), tex, dict(f, b=False, i=False, u=False)))
+                                continue
                         im = sub.find('.//' + V_ + 'imagedata')
                         img = ctx.image(im.get(R_ + 'id') if im is not None else None, *drawing_size(sub))
                         if img: segs.append((img, ' ', dict(f, img=True)))
@@ -218,11 +319,11 @@ def para_segments(ctx, p):
                         segs.append(('', '', f))
             elif tag in (M + 'oMath',):
                 tex = ctx.next_math(False)
-                segs.append((H.escape(tex), tex, dict(b=False, i=False, u=False, hl=False, color=None, va=None)))
+                segs.append((_ct_tu_bocngoac(tex), tex, dict(b=False, i=False, u=False, hl=False, color=None, va=None)))
             elif tag == M + 'oMathPara':
                 for om in ch.iter(M + 'oMath'):
                     tex = ctx.next_math(True)
-                    segs.append((H.escape(tex), tex, dict(b=False, i=False, u=False, hl=False, color=None, va=None)))
+                    segs.append((_ct_tu_bocngoac(tex), tex, dict(b=False, i=False, u=False, hl=False, color=None, va=None)))
             elif tag in (W + 'hyperlink', W + 'smartTag', W + 'ins', W + 'fldSimple', W + 'sdt', W + 'sdtContent') or tag.endswith('}customXml'):
                 walk(ch)
     walk(p)
@@ -326,18 +427,21 @@ def split_choices(item):
         # gom segs con theo ký tự
         seg_parts = []
         cur = None
+        da_them = set()
         for idx in range(a, b):
             c, si = chars[idx]
             h, t, f = item.segs[si]
-            if h.startswith('<img'):
-                if cur is None or cur[2] is not f:
-                    seg_parts.append((h, ' ', f)); cur = None
+            # ảnh / công thức: giữ nguyên cả khối HTML, chỉ thêm 1 lần
+            if h.startswith('<img') or h.startswith('<span class="ct">') or h.startswith('\\(') or h.startswith('\\['):
+                if si not in da_them:
+                    seg_parts.append((h, t, f)); da_them.add(si)
+                cur = None
                 continue
             if cur is not None and cur[2] is f:
                 cur[1] += c
             else:
                 cur = [None, c, f]; seg_parts.append(cur)
-        segs = [(H.escape(x[1]) if x[0] is None else x[0], x[1], x[2]) for x in seg_parts]
+        segs = [(H.escape(x[1]) if x[0] is None else x[0], x[1], x[2]) if isinstance(x, list) else x for x in seg_parts]
         lab_fmt = [item.segs[chars[i][1]][2] for i in range(*lab_span) if chars[i][0].strip()]
         out.append((m.group(1), segs, lab_fmt))
     return out
