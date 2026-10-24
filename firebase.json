@@ -17,7 +17,10 @@
       "cong-cu-chuyen-de/**",
       "worker/**",
       "tools/**",
-      "wrangler.jsonc"
+      "wrangler.jsonc",
+      "data/chuyen-de/**",
+      "data/de-that.js",
+      "data/de-mon/l*.js"
     ],
     "headers": [
       {

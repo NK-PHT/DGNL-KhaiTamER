@@ -70,7 +70,7 @@
 
         let ngay = '';
         try { if (d.thoiDiem && d.thoiDiem.toDate) ngay = d.thoiDiem.toDate().toLocaleString('vi-VN'); } catch (e) {}
-        const good = (d.diem || 0) >= 5;
+        const good = d.soCau ? (d.soDung || 0) / d.soCau >= 0.5 : false;
         const phut = d.thoiGianLamBai ? Math.floor(d.thoiGianLamBai / 60) : 0;
         const giay = d.thoiGianLamBai ? d.thoiGianLamBai % 60 : 0;
 
@@ -79,7 +79,7 @@
             <div class="m-row"><span>Đề đã làm</span><b>${d.chuyenDe || ''}</b></div>
             <div class="m-row"><span>Thời gian nộp</span><b>${ngay}</b></div>
             <div class="m-row"><span>Thời gian làm bài</span><b>${phut} phút ${giay} giây</b></div>
-            <div class="m-row"><span>Kết quả</span><span class="meta-score ${good ? 'good' : 'bad'}">${d.soDung}/${d.soCau} câu đúng — ${d.diem}/10</span></div>
+            <div class="m-row"><span>Kết quả</span><span class="meta-score ${good ? 'good' : 'bad'}">${d.soDung}/${d.soCau} câu đúng</span></div>
         `;
 
         const container = document.getElementById('questions-container');

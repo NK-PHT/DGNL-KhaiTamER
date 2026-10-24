@@ -567,7 +567,7 @@ function submitExam() {
     const diem = Math.round((soDung / soCau) * 10 * 100) / 100;
     const scoreBox = document.getElementById('score-wrap');
     scoreBox.style.display = 'block';
-    scoreBox.innerHTML = `<div class="d-flex align-items-end gap-3 flex-wrap"><span class="diem-lon">${diem}<small style="font-size:1rem;color:var(--muc-mo)">/10</small></span><span>Đúng <b>${soDung}/${soCau}</b> câu. Xem lời giải ngay dưới từng câu; trên phiếu trả lời, ô xanh là đúng, ô đỏ là sai, ô viền xanh là đáp án.</span></div>`;
+    scoreBox.innerHTML = `<div class="d-flex align-items-end gap-3 flex-wrap"><span class="diem-lon">${soDung}<small style="font-size:1rem;color:var(--muc-mo)">/${soCau} câu đúng</small></span><span>Em xem lời giải ngay dưới từng câu; trên phiếu trả lời, ô xanh là đúng, ô đỏ là sai, ô viền xanh là đáp án.</span></div>`;
     document.getElementById('submit-wrap').style.display = 'none';
     const theoPhan = {};
     document.querySelectorAll('.question-item[data-phan]').forEach(qDiv => {
@@ -632,7 +632,7 @@ async function hienThiLichSu() {
         return;
     }
     body.innerHTML = history.map(h => {
-        const good = h.diem >= 5;
+        const good = h.soCau ? h.soDung / h.soCau >= 0.5 : false;
         let ngay = '';
         try {
             if (h.thoiDiem && h.thoiDiem.toDate) ngay = h.thoiDiem.toDate().toLocaleString('vi-VN');
@@ -647,7 +647,7 @@ async function hienThiLichSu() {
                 <div class="small text-muted">${ngay} · ${h.soDung}/${h.soCau} câu đúng</div>
             </div>
             <div class="d-flex align-items-center">
-                <div class="h-score ${good ? 'good' : 'bad'}">${h.diem}/10</div>
+                <div class="h-score ${good ? 'good' : 'bad'}">${h.soDung}/${h.soCau}</div>
                 ${xemLaiBtn}
             </div>
         </div>`;

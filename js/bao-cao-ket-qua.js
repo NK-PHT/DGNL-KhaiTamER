@@ -65,7 +65,7 @@
         const origin = location.origin + location.pathname.replace(/[^/]+$/, '');
         const tbody = document.getElementById('table-body');
         tbody.innerHTML = allRows.map((r, i) => {
-            const good = (r.diem || 0) >= 5;
+            const good = r.soCau ? (r.soDung || 0) / r.soCau >= 0.5 : false;
             const xemLai = (r.chiTiet && r.chiTiet.length)
                 ? `<a href="${origin}xem-lai.html?id=${encodeURIComponent(r.id)}" target="_blank">Xem lại</a>`
                 : '<span class="text-muted">(không có)</span>';
@@ -75,8 +75,7 @@
                 <td>${r.ten || ''}</td>
                 <td>${r.email || ''}</td>
                 <td>${r.chuyenDe || ''}</td>
-                <td>${r.soDung ?? ''}/${r.soCau ?? ''}</td>
-                <td class="${good ? 'score-good' : 'score-bad'}">${r.diem ?? ''}</td>
+                <td class="${good ? 'score-good' : 'score-bad'}">${r.soDung ?? ''}/${r.soCau ?? ''}</td>
                 <td>${formatThoiGian(r.thoiGianLamBai)}</td>
                 <td>${xemLai}</td>
             </tr>`;
@@ -85,7 +84,7 @@
 
     function xuatExcel() {
         const origin = location.origin + location.pathname.replace(/[^/]+$/, '');
-        const header = ['Thời gian nộp', 'Họ và tên', 'Email', 'Đề đã làm', 'Số câu đúng', 'Tổng số câu', 'Điểm', 'Thời gian làm bài (giây)', 'Link xem lại'];
+        const header = ['Thời gian nộp', 'Họ và tên', 'Email', 'Đề đã làm', 'Số câu đúng', 'Tổng số câu', 'Thời gian làm bài (giây)', 'Link xem lại'];
         const aoa = [header];
         allRows.forEach(r => {
             aoa.push([
@@ -95,7 +94,6 @@
                 r.chuyenDe || '',
                 r.soDung ?? '',
                 r.soCau ?? '',
-                r.diem ?? '',
                 r.thoiGianLamBai ?? '',
                 (r.chiTiet && r.chiTiet.length) ? `${origin}xem-lai.html?id=${r.id}` : ''
             ]);

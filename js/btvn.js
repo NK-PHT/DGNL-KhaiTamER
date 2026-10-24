@@ -150,7 +150,7 @@
         }
         const diem = Math.round(soDung / t.soCau * 1000) / 100;
         $('p-ket-qua').innerHTML = `<div class="msg msg-info d-flex align-items-center gap-3 flex-wrap"><span class="diem-to">${soDung}/${t.soCau}</span>
-            <span>câu đúng · thang 10: <b>${diem}</b>${dapAn ? '<br><span class="small">Ô xanh = em chọn đúng · ô đỏ = em chọn sai · viền xanh = đáp án đúng</span>' : ''}</span></div>`;
+            <span>câu đúng${dapAn ? '<br><span class="small">Ô xanh = em chọn đúng · ô đỏ = em chọn sai · viền xanh = đáp án đúng</span>' : ''}</span></div>`;
     }
 
     function vePhieu(dapAn) {

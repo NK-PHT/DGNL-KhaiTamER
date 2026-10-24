@@ -203,12 +203,12 @@
             (!coDA ? ' · <span class="text-danger">chưa có đáp án — chưa chấm được</span>' : tb != null ? ` · trung bình <b>${tb.toFixed(1)}</b>/${t.soCau} câu đúng` : '') +
             ` · link gửi học sinh: <a href="${linkTuan(id)}" target="_blank">${esc(linkTuan(id))}</a>`;
 
-        $('tab-hs').innerHTML = `<table><thead><tr><th>#</th><th>Họ và tên</th><th>Email</th><th>Trạng thái</th><th>Nộp lúc</th><th>Đúng</th><th>Thang 10</th><th>Bỏ trống</th></tr></thead><tbody>` +
+        $('tab-hs').innerHTML = `<table><thead><tr><th>#</th><th>Họ và tên</th><th>Email</th><th>Trạng thái</th><th>Nộp lúc</th><th>Số câu đúng</th><th>Bỏ trống</th></tr></thead><tbody>` +
             bangHS.map((r, i) => {
                 const st = r.nop ? (r.tre ? ['st-late', 'Nộp trễ'] : ['st-ok', 'Đúng hạn']) : (het ? ['st-miss', 'Chưa nộp'] : ['st-none', 'Chưa nộp']);
                 return `<tr><td>${i + 1}</td><td>${esc(r.ten)}${r.ngoaiDS ? ' <span class="text-muted small">(không còn trong DS)</span>' : ''}</td><td>${esc(r.email)}</td>
                     <td><span class="badge-st ${st[0]}">${st[1]}</span></td><td>${r.nopLuc ? ngayGio(r.nopLuc) : ''}</td>
-                    <td>${r.dung != null ? `<b>${r.dung}</b>/${t.soCau}` : ''}</td><td>${r.dung != null ? thang10(r.dung, t.soCau) : ''}</td><td>${r.trong != null ? r.trong : ''}</td></tr>`;
+                    <td>${r.dung != null ? `<b>${r.dung}</b>/${t.soCau}` : ''}</td><td>${r.trong != null ? r.trong : ''}</td></tr>`;
             }).join('') + '</tbody></table>';
 
         const ds = Object.values(nop);
@@ -237,8 +237,8 @@
     function xuatExcel() {
         const t = dsTuan.find(x => x.id === dangXem); if (!t) return;
         const wb = XLSX.utils.book_new();
-        const a1 = [['STT', 'Họ và tên', 'Email', 'Trạng thái', 'Nộp lúc', 'Số câu đúng', 'Tổng số câu', 'Thang 10', 'Bỏ trống']];
-        bangHS.forEach((r, i) => a1.push([i + 1, r.ten, r.email, r.nop ? (r.tre ? 'Nộp trễ' : 'Đúng hạn') : 'Chưa nộp', r.nopLuc ? ngayGio(r.nopLuc) : '', r.dung ?? '', t.soCau, r.dung != null ? thang10(r.dung, t.soCau) : '', r.trong ?? '']));
+        const a1 = [['STT', 'Họ và tên', 'Email', 'Trạng thái', 'Nộp lúc', 'Số câu đúng', 'Tổng số câu', 'Bỏ trống']];
+        bangHS.forEach((r, i) => a1.push([i + 1, r.ten, r.email, r.nop ? (r.tre ? 'Nộp trễ' : 'Đúng hạn') : 'Chưa nộp', r.nopLuc ? ngayGio(r.nopLuc) : '', r.dung ?? '', t.soCau, r.trong ?? '']));
         const ws1 = XLSX.utils.aoa_to_sheet(a1);
         ws1['!cols'] = [{ wch: 5 }, { wch: 24 }, { wch: 30 }, { wch: 11 }, { wch: 17 }, { wch: 11 }, { wch: 11 }, { wch: 9 }, { wch: 9 }];
         XLSX.utils.book_append_sheet(wb, ws1, 'Học sinh');
