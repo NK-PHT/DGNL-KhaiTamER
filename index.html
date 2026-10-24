@@ -35,7 +35,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 
-    <link rel="stylesheet" href="css/giao-dien.css?v=20261024c">
+    <link rel="stylesheet" href="css/giao-dien.css?v=20261024d">
     <style>
         /* ===== Trang luyện đề — phần riêng (màu/chữ chung ở css/giao-dien.css) ===== */
         .user-badge { display: flex; align-items: center; gap: 10px; padding: 4px 6px 4px 4px; border-radius: 999px; }
@@ -70,6 +70,26 @@
         .lien-ket-phu .nut, .lien-ket-phu .nut-phu { padding: .55rem .5rem; font-size: .85rem; }
         .btn-custom-generate { width: 100%; padding: .75rem; font-size: 1rem; }
         #check-timer + label { font-size: .88rem; }
+
+        /* Lựa chọn hiện sẵn thành nút (thay danh sách thả xuống) */
+        .luoi-mon { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .ds-chuyen-de { display: flex; flex-direction: column; gap: 4px; }
+        .lua-chon {
+            display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;
+            text-align: left; background: var(--mat); border: 1px solid var(--vien); border-radius: var(--bo-nho);
+            padding: 8px 10px; font-family: var(--font-ui); color: var(--muc); cursor: pointer;
+            transition: border-color .12s ease, background-color .12s ease;
+        }
+        .luoi-mon .lua-chon { flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; min-height: 52px; }
+        .luoi-mon .lua-chon.lc-rong { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; min-height: 0; }
+        .lua-chon:hover { border-color: var(--troi-vien); background: var(--troi-nhat); }
+        .lua-chon.dang-chon { border-color: var(--troi-dam); background: var(--troi-nhat); box-shadow: inset 0 0 0 1px var(--troi-dam); }
+        .lua-chon .lc-ten { font-weight: 500; font-size: .9rem; line-height: 1.3; }
+        .lua-chon.dang-chon .lc-ten { color: var(--troi-dam); font-weight: 600; }
+        .lua-chon .lc-phu { font-size: .75rem; color: var(--muc-mo); }
+        .lua-chon .lc-so { flex: 0 0 auto; font-size: .75rem; color: var(--muc-mo); font-variant-numeric: tabular-nums; }
+        .ds-chuyen-de .lua-chon { padding: 7px 10px; }
+        .ds-chuyen-de .lua-chon.lc-noi-bat { border-color: var(--troi-vien); }
 
         /* Màn hình chờ: cấu trúc 120 câu của đề ĐGNL */
         .cho-bat-dau { max-width: 640px; margin: 24px auto; }
@@ -196,23 +216,23 @@
             <div class="sidebar-panel">
                 <h2 class="tieu-de-cot">Luyện đề</h2>
                 <div class="mb-3">
-                    <label class="form-label" for="select-mon">Môn</label>
-                    <select id="select-mon" class="form-select">
-                        <option value="toan">Toán — theo chuyên đề hoặc đề tổng hợp</option>
-                        <option value="tv">Tiếng Việt — 30 câu</option>
-                        <option value="anh">Tiếng Anh — 30 câu</option>
-                        <option value="kh">Tư duy khoa học — 30 câu</option>
-                        <option value="full">Đề đầy đủ 120 câu</option>
+                    <div class="form-label" id="nhan-mon">Môn</div>
+                    <select id="select-mon" class="form-select" aria-labelledby="nhan-mon">
+                        <option value="toan" data-ten="Toán" data-phu="theo chuyên đề">Toán</option>
+                        <option value="tv" data-ten="Tiếng Việt" data-phu="30 câu">Tiếng Việt</option>
+                        <option value="anh" data-ten="Tiếng Anh" data-phu="30 câu">Tiếng Anh</option>
+                        <option value="kh" data-ten="Tư duy khoa học" data-phu="30 câu">Tư duy khoa học</option>
+                        <option value="full" data-ten="Đề đầy đủ 120 câu" data-phu="150 phút" data-rong="1">Đề đầy đủ 120 câu</option>
                     </select>
+                    <div class="luoi-mon" id="nut-mon" role="radiogroup" aria-labelledby="nhan-mon"></div>
                 </div>
                 <div class="mb-3" id="wrap-chuyen-de">
-                    <label class="form-label" for="select-chuyen-de">Chuyên đề</label>
-                    <select id="select-chuyen-de" class="form-select"></select>
+                    <div class="form-label" id="nhan-chuyen-de">Chuyên đề</div>
+                    <select id="select-chuyen-de" class="form-select" aria-labelledby="nhan-chuyen-de"></select>
+                    <div class="ds-chuyen-de" id="nut-chuyen-de" role="radiogroup" aria-labelledby="nhan-chuyen-de"></div>
                 </div>
                 <div class="mb-3" id="wrap-de-mon" style="display:none;">
-                    <label class="form-label" for="select-de-mon">Đề</label>
-                    <select id="select-de-mon" class="form-select"></select>
-                    <div class="small text-muted mt-1" id="ghi-chu-de-mon"></div>
+                    <div class="small text-muted" id="ghi-chu-de-mon"></div>
                 </div>
                 <div class="mb-3" id="wrap-so-cau">
                     <label class="form-label" for="input-so-cau">Số câu hỏi</label>
@@ -245,7 +265,7 @@
             <div class="exam-panel">
                 <div id="welcome-panel" class="cho-bat-dau">
                     <h2>Chọn môn rồi bấm “Tạo đề”</h2>
-                    <p>Mỗi môn lấy nguyên một phần của đề thi thử, đúng thứ tự và số câu như đề thật. Muốn làm cả bài thi thì chọn “Đề đầy đủ 120 câu” (150 phút).</p>
+                    <p>Mỗi lần tạo là một đề mới, trộn ngẫu nhiên từ các đề thi thử nhưng vẫn đúng thứ tự và dạng câu như đề thật. Muốn làm cả bài thi thì chọn “Đề đầy đủ 120 câu” (150 phút).</p>
                     <div class="cau-truc" aria-label="Cấu trúc đề Đánh giá năng lực 120 câu">
                         <div class="khoi khoi-1"><b>Sử dụng ngôn ngữ</b><span>Tiếng Việt 30 câu · Tiếng Anh 30 câu</span></div>
                         <div class="khoi khoi-2"><b>Toán học</b><span>30 câu</span></div>
@@ -319,12 +339,13 @@
          bản mới, đổi số phía sau ?v= (VD sang ngày/giờ deploy) để đảm bảo
          trình duyệt luôn tải lại đúng bản mới nhất, không cần học sinh/giáo
          viên phải tự xoá cache thủ công. -->
-    <script src="js/firebase-config.js?v=20261024c"></script>
-    <script src="js/auth.js?v=20261024c"></script>
-    <script src="data/manifest.js?v=20261024c"></script>
-    <script src="data/de-that.js?v=20261024c"></script>
-    <script src="data/de-mon/manifest.js?v=20261024c"></script>
-    <script src="js/app.js?v=20261024c"></script>
-    <script src="js/mon-khac.js?v=20261024c"></script>
+    <script src="js/firebase-config.js?v=20261024d"></script>
+    <script src="js/auth.js?v=20261024d"></script>
+    <script src="data/manifest.js?v=20261024d"></script>
+    <script src="data/de-that.js?v=20261024d"></script>
+    <script src="data/de-mon/manifest.js?v=20261024d"></script>
+    <script src="js/app.js?v=20261024d"></script>
+    <script src="js/mon-khac.js?v=20261024d"></script>
+    <script src="js/chon-nhanh.js?v=20261024d"></script>
 </body>
 </html>

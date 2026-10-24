@@ -232,11 +232,17 @@ function batDauLamBai(chuyenDeTen, groups, enableTimer, soPhut, soCauBatDau) {
 // (2 ô nhập "Số câu hỏi" / "Bật đếm giờ" đã bị ẩn ở chế độ này, xem
 // capNhatHienThiTheoCheDo()).
 function taoDeTongHopThat(chuyenDeTenGoc) {
-    const danhSachDe = window.DGNL_DE_THAT || [];
-    const de = danhSachDe[Math.floor(Math.random() * danhSachDe.length)];
-    const groups = de.nhom.map(xaoTronDapAnNhom);
-    const chuyenDeTen = `${chuyenDeTenGoc} — ${de.ten}`;
-    batDauLamBai(chuyenDeTen, groups, true, 50, 61);
+    // Trộn ngẫu nhiên THEO ĐÚNG VỊ TRÍ CÂU từ tất cả đề thật (xem js/mon-khac.js):
+    // câu/cụm ở vị trí nào lấy từ đúng vị trí đó của một đề bất kỳ.
+    const mk = window.DGNL_MON_KHAC;
+    let nhom;
+    if (mk && mk.tronTheoViTri && mk.cacPhanToan().length) {
+        nhom = mk.tronTheoViTri(mk.cacPhanToan());
+    } else {
+        const danhSachDe = window.DGNL_DE_THAT || [];
+        nhom = danhSachDe[Math.floor(Math.random() * danhSachDe.length)].nhom;
+    }
+    batDauLamBai('Toán — đề trộn ngẫu nhiên (42 câu)', nhom.map(xaoTronDapAnNhom), true, 50, 61);
 }
 
 // ---------------- 3. HIỂN THỊ ĐỀ ----------------
