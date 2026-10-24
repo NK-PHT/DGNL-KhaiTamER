@@ -1,8 +1,8 @@
 /* =========================================================================
    GIAO DIỆN CHUNG — web Luyện thi ĐGNL Khai Tâm
    Màu lấy theo logo: xám than (chữ KHAI) + xanh trời (khối TÂM).
-   Chữ: Lexend cho giao diện (dễ đọc, rõ số), Literata (có chân) cho nội
-   dung đề thi — đọc đoạn văn dài đỡ mỏi mắt, giống đề in trên giấy.
+   Chữ: Lexend cho giao diện (dễ đọc, rõ số), Be Vietnam Pro (không chân,
+   thiết kế riêng cho tiếng Việt) cho nội dung đề thi và lời giải.
    Dùng chung cho mọi trang; trang nào có style riêng thì đặt sau file này.
    ========================================================================= */
 :root {
@@ -21,7 +21,7 @@
     --sai: #c43b3b;  --sai-nhat: #fbe9e9;
     --vang: #a86b12; --vang-nhat: #fdf3e1;
     --font-ui: 'Lexend', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --font-de: 'Literata', Georgia, 'Times New Roman', serif;
+    --font-de: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
     --bo: 12px;              /* bo góc khối lớn */
     --bo-nho: 8px;
 
