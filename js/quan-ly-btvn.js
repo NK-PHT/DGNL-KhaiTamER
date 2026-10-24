@@ -60,7 +60,8 @@
     // ---------- Tải dữ liệu ----------
     async function taiTatCa() {
         const [sT, sD, sH] = await Promise.all([db.collection('btvn').get(), db.collection('btvn_dapan').get(), db.collection('hocsinh').get()]);
-        dsTuan = sT.docs.map(d => { const x = d.data(); return { id: d.id, ten: x.ten || d.id, soCau: x.soCau || 120, hanNop: x.hanNop ? x.hanNop.toDate() : new Date(0), linkDe: x.linkDe || '' }; })
+        dsTuan = sT.docs.map(d => { const x = d.data(); return { id: d.id, ten: x.ten || d.id, soCau: x.soCau || 120, hanNop: x.hanNop ? x.hanNop.toDate() : new Date(0), linkDe: x.linkDe || '',
+            linkLoiGiai: x.linkLoiGiai || '', moLoiGiai: x.moLoiGiai && x.moLoiGiai.toDate ? x.moLoiGiai.toDate() : null }; })
             .sort((a, b) => b.hanNop - a.hanNop);
         dapAnCua = {}; sD.docs.forEach(d => { dapAnCua[d.id] = d.data().dapAn || ''; });
         hocSinh = sH.docs.map(d => ({ email: d.id, ten: d.data().ten || '' }));
@@ -75,11 +76,14 @@
         $('ds-tuan').innerHTML = dsTuan.map(t => {
             const coDA = (dapAnCua[t.id] || '').replace(/-/g, '').length;
             const het = Date.now() > t.hanNop;
+            const moLG = t.moLoiGiai && Date.now() >= t.moLoiGiai;
+            const lg = moLG ? '<span class="badge-st st-ok">HS đã xem được đáp án, lời giải</span>' : (t.moLoiGiai ? `HS xem đáp án từ ${ngayGio(t.moLoiGiai)}` : 'HS chưa xem được đáp án');
             return `<div class="tuan-row ${dangXem === t.id ? 'active' : ''}">
                 <div><div class="fw-bold">${esc(t.ten)}</div>
-                <div class="small text-muted">Hạn: ${ngayGio(t.hanNop)} ${het ? '<span class="badge-st st-none">đã hết hạn</span>' : '<span class="badge-st st-ok">đang mở</span>'} · ${t.soCau} câu · đã nộp: <b>${demNop[t.id] ?? 0}</b>/${hocSinh.length} · đáp án: ${coDA === t.soCau ? '✓ đủ' : `<span class="text-danger">${coDA}/${t.soCau}</span>`}</div></div>
+                <div class="small text-muted">Hạn: ${ngayGio(t.hanNop)} ${het ? '<span class="badge-st st-none">đã hết hạn</span>' : '<span class="badge-st st-ok">đang mở</span>'} · ${t.soCau} câu · đã nộp: <b>${demNop[t.id] ?? 0}</b>/${hocSinh.length} · đáp án: ${coDA === t.soCau ? '✓ đủ' : `<span class="text-danger">${coDA}/${t.soCau}</span>`} · ${lg}</div></div>
                 <div class="d-flex gap-1">
                     <button class="btn btn-sm btn-success" data-xem="${esc(t.id)}"><i class="fa-solid fa-table"></i> Kết quả</button>
+                    ${moLG ? '' : `<button class="btn btn-sm btn-outline-secondary" data-mo-ngay="${esc(t.id)}" title="Cho học sinh xem đáp án và lời giải ngay bây giờ"><i class="fa-solid fa-eye"></i> Hiện đáp án</button>`}
                     <button class="btn btn-sm btn-outline-secondary" data-sua="${esc(t.id)}"><i class="fa-solid fa-pen"></i> Sửa</button>
                     <button class="btn btn-sm btn-outline-secondary" data-copy="${esc(t.id)}" title="Copy link gửi học sinh"><i class="fa-solid fa-link"></i></button>
                     <button class="btn btn-sm btn-outline-danger" data-xoa="${esc(t.id)}" title="Xoá tuần"><i class="fa-solid fa-trash"></i></button>
@@ -97,6 +101,8 @@
         const macDinh = new Date(); macDinh.setDate(macDinh.getDate() + 7); macDinh.setHours(21, 0, 0, 0);
         $('f-han').value = choInput(t ? t.hanNop : macDinh);
         $('f-link').value = t ? t.linkDe : '';
+        $('f-link-lg').value = t ? t.linkLoiGiai : '';
+        $('f-mo-lg').value = t && t.moLoiGiai ? choInput(t.moLoiGiai) : '';
         $('f-dap-an').value = t ? dapAnRaChu(dapAnCua[t.id]) : '';
         $('f-msg').innerHTML = '';
         capNhatDemDapAn();
@@ -108,11 +114,14 @@
     async function luu() {
         const ten = $('f-ten').value.trim(), soCau = parseInt($('f-so-cau').value, 10), han = new Date($('f-han').value);
         const linkDe = $('f-link').value.trim();
+        const linkLoiGiai = $('f-link-lg').value.trim();
+        const moLG = $('f-mo-lg').value ? new Date($('f-mo-lg').value) : null;
         const fmsg = (k, m) => { $('f-msg').innerHTML = `<div class="msg msg-${k}">${m}</div>`; };
         if (!ten) return fmsg('err', 'Chưa nhập tên bài.');
         if (!(soCau >= 1 && soCau <= 200)) return fmsg('err', 'Số câu phải từ 1 đến 200.');
         if (isNaN(han)) return fmsg('err', 'Chưa chọn hạn nộp.');
         if (linkDe && !/^https?:\/\//i.test(linkDe)) return fmsg('err', 'Link đề phải bắt đầu bằng https://');
+        if (linkLoiGiai && !/^https?:\/\//i.test(linkLoiGiai)) return fmsg('err', 'Link lời giải phải bắt đầu bằng https://');
         const cu = dangSua && dsTuan.find(t => t.id === dangSua);
         if (cu && cu.soCau !== soCau && demNop[cu.id] > 0) return fmsg('err', `Tuần này đã có ${demNop[cu.id]} học sinh nộp — không đổi số câu được nữa.`);
         let dapAn = '-'.repeat(soCau);
@@ -125,7 +134,9 @@
         const btn = $('btn-luu'); btn.disabled = true;
         try {
             const b = db.batch();
-            b.set(db.collection('btvn').doc(id), { ten, soCau, hanNop: firebase.firestore.Timestamp.fromDate(han), linkDe, capNhat: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+            b.set(db.collection('btvn').doc(id), { ten, soCau, hanNop: firebase.firestore.Timestamp.fromDate(han), linkDe, linkLoiGiai,
+                moLoiGiai: moLG && !isNaN(moLG) ? firebase.firestore.Timestamp.fromDate(moLG) : null,
+                capNhat: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
             b.set(db.collection('btvn_dapan').doc(id), { dapAn });
             await b.commit();
             const daSua = !!dangSua;
@@ -137,6 +148,15 @@
             console.error(e);
             fmsg('err', 'Lỗi khi lưu: ' + (e.code === 'permission-denied' ? 'không có quyền — đã dán firestore.rules mới vào Firebase Console chưa?' : esc(e.message)));
         } finally { btn.disabled = false; }
+    }
+
+    async function hienDapAnNgay(id) {
+        const t = dsTuan.find(x => x.id === id);
+        if (!t || !window.confirm(`Cho học sinh xem đáp án từng câu và lời giải của "${t.ten}" ngay bây giờ?`)) return;
+        try {
+            await db.collection('btvn').doc(id).set({ moLoiGiai: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+            await taiTatCa();
+        } catch (e) { alert('Không cập nhật được: ' + e.message); }
     }
 
     async function xoa(id) {
@@ -245,6 +265,7 @@
         if (b.dataset.xem) xemKetQua(b.dataset.xem).catch(err => { console.error(err); $('tab-hs').innerHTML = '<div class="msg msg-err">Lỗi tải kết quả: ' + esc(err.message) + '</div>'; });
         if (b.dataset.sua) datForm(dsTuan.find(t => t.id === b.dataset.sua));
         if (b.dataset.xoa) xoa(b.dataset.xoa);
+        if (b.dataset.moNgay) hienDapAnNgay(b.dataset.moNgay);
         if (b.dataset.copy) {
             navigator.clipboard.writeText(linkTuan(b.dataset.copy)).then(() => {
                 b.innerHTML = '<i class="fa-solid fa-check"></i>';

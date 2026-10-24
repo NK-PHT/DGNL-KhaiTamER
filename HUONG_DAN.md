@@ -195,11 +195,16 @@ chọn A/B/C/D cho từng câu và nộp. Web tự chấm, tự ghi nhận ai n�
 4. Sửa đáp án sau khi giao: bấm **Sửa** → sửa → Lưu, điểm tự tính lại.
 
 **Học sinh** — `btvn.html`:
-- Trước hạn: nộp, sửa, nộp lại thoải mái; chỉ thấy "Đã nộp", CHƯA thấy
-  điểm/đáp án. Đáp án chọn dở được lưu nháp trên máy.
-- Sau hạn: thấy điểm + đáp án đúng (chỉ khi đã nộp). Chưa nộp thì vẫn nộp
-  được 1 lần, ghi **nộp trễ**, nộp rồi là khoá.
-- Tất cả quyền trên do `firestore.rules` kiểm soát ở máy chủ.
+- Chọn đáp án cho từng câu rồi nộp — **mỗi tuần chỉ nộp 1 lần**, nộp rồi
+  không sửa được (đáp án chọn dở được lưu nháp trên máy).
+- Nộp xong khoảng 1 phút là thấy **số câu đúng** (do Google Sheet của giáo
+  viên chấm — xem mục dưới; Sheet chưa cài thì học sinh chỉ thấy "Đang chấm").
+- **Đáp án từng câu và lời giải** chỉ hiện từ ngày giáo viên đặt ở ô "Hiện
+  đáp án & lời giải cho học sinh từ" (hoặc bấm nút **Hiện đáp án** ở danh
+  sách tuần) — thường là sau buổi sửa bài trên lớp. Có thể kèm link PDF lời giải.
+- Quá hạn mà chưa nộp vẫn nộp được (ghi **nộp trễ**).
+- Tất cả quyền trên do `firestore.rules` kiểm soát ở máy chủ (máy học sinh
+  không đọc được đáp án trước ngày giáo viên cho xem).
 
 ### Google Sheet tự tô màu ai đã nộp
 
@@ -216,8 +221,10 @@ project Firebase):
      `cong-cu-google-sheet/BangNopBai.gs`. Bấm 💾 Lưu.
 5. Chọn hàm `batTuDong` ở thanh trên → **Chạy (Run)** → cấp quyền (chọn
    tài khoản → Nâng cao → Đi tới … → Cho phép).
-6. Quay lại Sheet: có tab **"Nộp BTVN"**, tự cập nhật mỗi 10 phút. Menu
-   **ĐGNL → Cập nhật ngay** để cập nhật tức thì.
+6. Quay lại Sheet: có tab **"Nộp BTVN"**. Từ giờ Sheet tự **chấm bài mỗi
+   1 phút** (ghi số câu đúng cho học sinh) và **vẽ lại bảng mỗi 5 phút**.
+   Menu **ĐGNL → Cập nhật ngay** để làm ngay; **ĐGNL → Chấm lại tất cả**
+   sau khi sửa đáp án một tuần đã có người nộp.
 
 Màu: **xanh** = nộp đúng hạn (kèm số câu đúng), **vàng** = nộp trễ,
 **đỏ** = quá hạn chưa nộp, trống = chưa tới hạn. Mỗi tuần là 1 cột, mỗi

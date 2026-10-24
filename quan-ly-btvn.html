@@ -77,7 +77,13 @@
                     <div class="col-md-5"><label class="form-label small fw-bold mb-1">Tên bài</label><input class="form-control" id="f-ten" placeholder="VD: BTVN Tuần 1 — Đề thi thử số 15"></div>
                     <div class="col-6 col-md-2"><label class="form-label small fw-bold mb-1">Số câu</label><input type="number" class="form-control" id="f-so-cau" value="120" min="1" max="200"></div>
                     <div class="col-6 col-md-5"><label class="form-label small fw-bold mb-1">Hạn nộp</label><input type="datetime-local" class="form-control" id="f-han"></div>
-                    <div class="col-12"><label class="form-label small fw-bold mb-1">Link đề (không bắt buộc)</label><input class="form-control" id="f-link" placeholder="Link Google Drive file PDF đề để học sinh mở trên web — bỏ trống nếu chỉ phát giấy"></div>
+                    <div class="col-md-6"><label class="form-label small fw-bold mb-1">Link đề (không bắt buộc)</label><input class="form-control" id="f-link" placeholder="Link Google Drive file PDF đề — bỏ trống nếu chỉ phát giấy"></div>
+                    <div class="col-md-6"><label class="form-label small fw-bold mb-1">Link lời giải (không bắt buộc)</label><input class="form-control" id="f-link-lg" placeholder="Link Google Drive file PDF lời giải"></div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold mb-1">Hiện đáp án &amp; lời giải cho học sinh từ</label>
+                        <input type="datetime-local" class="form-control" id="f-mo-lg">
+                        <div class="small text-muted mt-1">Để trống = chưa hiện. Thường đặt sau buổi sửa bài trên lớp. Số câu đúng thì học sinh thấy ngay khi nộp.</div>
+                    </div>
                     <div class="col-12">
                         <label class="form-label small fw-bold mb-1">Đáp án đúng</label>
                         <textarea class="form-control" id="f-dap-an" rows="4" placeholder="Dán chuỗi liền: ABDCBA...&#10;hoặc dạng có số câu: 1A 2B 3.C 4-D ... (cách nhau tuỳ ý, xuống dòng cũng được)&#10;Có thể để trống và nhập sau — học sinh vẫn nộp được."></textarea>
@@ -115,6 +121,6 @@
         </div>
     </div>
     <script src="js/firebase-config.js?v=20261024c"></script>
-    <script src="js/quan-ly-btvn.js?v=20261024c"></script>
+    <script src="js/quan-ly-btvn.js?v=20261024h"></script>
 </body>
 </html>

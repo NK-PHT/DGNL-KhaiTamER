@@ -1,10 +1,16 @@
 // =========================================================================
 // TRANG "BÀI TẬP TUẦN" (btvn.html) — phiếu trả lời trắc nghiệm cho học sinh.
 // Đề là file PDF/giấy giáo viên phát; học sinh chỉ chọn đáp án A/B/C/D cho
-// từng câu rồi nộp. Dữ liệu (Firestore):
-//   btvn/{tuan}          : ten, soCau, hanNop, linkDe
-//   btvn_dapan/{tuan}    : dapAn ("ABCD..." — chỉ đọc được sau hạn + đã nộp)
-//   btvn_bainop/{uid}_{tuan}: traLoi ("AB-C..." — '-' = bỏ trống), nopLuc
+// từng câu rồi nộp — MỖI TUẦN NỘP ĐÚNG 1 LẦN.
+//   - Nộp xong: khoảng 1 phút sau hiện SỐ CÂU ĐÚNG (Google Sheet của giáo
+//     viên chấm rồi ghi vào phiếu — máy học sinh không đọc được đáp án).
+//   - Đáp án từng câu + lời giải: chỉ hiện từ ngày giáo viên đặt
+//     ("Hiện đáp án & lời giải từ"), thường là sau buổi sửa bài trên lớp.
+// Dữ liệu (Firestore):
+//   btvn/{tuan}             : ten, soCau, hanNop, linkDe, moLoiGiai, linkLoiGiai
+//   btvn_dapan/{tuan}       : dapAn ("ABCD...")
+//   btvn_bainop/{uid}_{tuan}: traLoi ("AB-C..." — '-' = bỏ trống), nopLuc,
+//                             daCham, soDung (do Sheet ghi)
 // Quyền đọc/ghi do firestore.rules kiểm soát, không chỉ ở đây.
 // =========================================================================
 (function () {
@@ -20,12 +26,16 @@
     const $ = id => document.getElementById(id);
     const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const ngayGio = t => t ? t.toLocaleString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+    const toDate = v => (v && v.toDate) ? v.toDate() : null;
 
-    let dsTuan = [];          // [{id, ten, soCau, hanNop: Date, linkDe}]
-    let phieuCua = {};        // tuanId -> {traLoi, nopLuc: Date} | null
-    let hienTai = null;       // tuần đang mở
-    let traLoi = [];          // mảng ký tự đang chọn
+    let dsTuan = [];          // [{id, ten, soCau, hanNop, linkDe, moLoiGiai, linkLoiGiai}]
+    let phieuCua = {};        // tuanId -> {traLoi, nopLuc, daCham, soDung} | null
+    let hienTai = null;
+    let traLoi = [];
     let khoa = false;
+    let boNghe = null;        // huỷ theo dõi phiếu đang mở
+
+    const daMoLoiGiai = t => !!(t.moLoiGiai && Date.now() >= t.moLoiGiai.getTime());
 
     function trangThai(t) {
         const p = phieuCua[t.id];
@@ -34,16 +44,19 @@
         return het ? ['st-miss', 'Chưa nộp — quá hạn'] : ['st-none', 'Chưa nộp'];
     }
 
+    const tuPhieu = d => d ? { traLoi: d.traLoi, nopLuc: toDate(d.nopLuc), daCham: !!d.daCham, soDung: typeof d.soDung === 'number' ? d.soDung : null } : null;
+
     async function taiDanhSach() {
         const snap = await db.collection('btvn').get();
         dsTuan = snap.docs.map(d => {
             const x = d.data();
-            return { id: d.id, ten: x.ten || d.id, soCau: x.soCau || 120, hanNop: x.hanNop ? x.hanNop.toDate() : new Date(0), linkDe: x.linkDe || '' };
+            return { id: d.id, ten: x.ten || d.id, soCau: x.soCau || 120, hanNop: toDate(x.hanNop) || new Date(0),
+                linkDe: x.linkDe || '', moLoiGiai: toDate(x.moLoiGiai), linkLoiGiai: x.linkLoiGiai || '' };
         }).sort((a, b) => b.hanNop - a.hanNop);
         await Promise.all(dsTuan.map(async t => {
             try {
                 const s = await db.collection('btvn_bainop').doc(user.uid + '_' + t.id).get();
-                phieuCua[t.id] = s.exists ? { traLoi: s.data().traLoi, nopLuc: s.data().nopLuc ? s.data().nopLuc.toDate() : null } : null;
+                phieuCua[t.id] = s.exists ? tuPhieu(s.data()) : null;
             } catch (e) { console.error(e); phieuCua[t.id] = null; }
         }));
         veDanhSach();
@@ -56,8 +69,10 @@
         if (!dsTuan.length) { $('ds-tuan').innerHTML = '<div class="text-muted small">Chưa có bài tập tuần nào.</div>'; return; }
         $('ds-tuan').innerHTML = dsTuan.map(t => {
             const [cls, nhan] = trangThai(t);
+            const p = phieuCua[t.id];
+            const diem = p && p.soDung != null ? ` · ${p.soDung}/${t.soCau} câu đúng` : '';
             return `<button class="tuan-item ${hienTai && hienTai.id === t.id ? 'active' : ''}" data-tuan="${esc(t.id)}">
-                <div><div class="fw-bold">${esc(t.ten)}</div><div class="small text-muted">Hạn nộp: ${ngayGio(t.hanNop)}</div></div>
+                <div><div class="fw-bold">${esc(t.ten)}</div><div class="small text-muted">Hạn nộp: ${ngayGio(t.hanNop)}${diem}</div></div>
                 <span class="badge-st ${cls}">${nhan}</span></button>`;
         }).join('');
     }
@@ -66,10 +81,12 @@
     function luuNhap() { try { localStorage.setItem(khoaNhap(), traLoi.join('')); $('nhap-luu').textContent = '· đã lưu nháp trên máy'; } catch (e) {} }
     function docNhap() { try { return localStorage.getItem(khoaNhap()); } catch (e) { return null; } }
     function xoaNhap() { try { localStorage.removeItem(khoaNhap()); } catch (e) {} }
+    function msg(kind, html) { $('p-msg').innerHTML = html ? `<div class="msg msg-${kind}">${html}</div>` : ''; }
 
     async function moTuan(id) {
         hienTai = dsTuan.find(t => t.id === id);
         if (!hienTai) return;
+        if (boNghe) { boNghe(); boNghe = null; }
         veDanhSach();
         const t = hienTai, p = phieuCua[t.id];
         const het = Date.now() > t.hanNop.getTime();
@@ -78,40 +95,63 @@
         $('p-han').textContent = 'Hạn nộp: ' + ngayGio(t.hanNop) + ' · ' + t.soCau + ' câu';
         const link = $('p-link-de');
         if (t.linkDe) { link.href = t.linkDe; link.style.display = ''; } else link.style.display = 'none';
-        $('p-ket-qua').innerHTML = ''; $('p-msg').innerHTML = ''; $('nhap-luu').textContent = '';
+        const lg = $('p-link-lg');
+        lg.style.display = (p && daMoLoiGiai(t) && t.linkLoiGiai) ? '' : 'none';
+        if (t.linkLoiGiai) lg.href = t.linkLoiGiai;
+        $('p-ket-qua').innerHTML = ''; msg('', ''); $('nhap-luu').textContent = '';
 
         const nhap = !p ? docNhap() : null;
         const goc = (p && p.traLoi) || (nhap && nhap.length === t.soCau ? nhap : '');
         traLoi = Array.from({ length: t.soCau }, (_, i) => (goc[i] && goc[i] !== '-') ? goc[i] : '-');
+        khoa = !!p;   // đã nộp => khoá phiếu
 
-        khoa = !!(p && het);   // nộp rồi + hết hạn => khoá, xem kết quả
         let dapAn = null;
-        if (khoa) {
+        if (p && daMoLoiGiai(t)) {
             try {
                 const s = await db.collection('btvn_dapan').doc(t.id).get();
-                if (s.exists) dapAn = s.data().dapAn || null;
+                if (s.exists && /[ABCD]/.test(s.data().dapAn || '')) dapAn = s.data().dapAn;
             } catch (e) { console.error('Không đọc được đáp án:', e); }
         }
 
-        if (p && !het) msg('ok', `<i class="fa-solid fa-circle-check"></i> Em đã nộp lúc ${ngayGio(p.nopLuc)}. Có thể sửa và nộp lại trước hạn. Điểm và đáp án sẽ hiện sau khi hết hạn.`);
-        else if (p && het && p.nopLuc > t.hanNop) msg('warn', `Em nộp trễ lúc ${ngayGio(p.nopLuc)}.`);
-        else if (p && het) msg('ok', `Em đã nộp đúng hạn lúc ${ngayGio(p.nopLuc)}.`);
-        else if (!p && het) msg('warn', '<i class="fa-solid fa-triangle-exclamation"></i> Đã quá hạn nộp. Em vẫn có thể nộp (sẽ ghi nhận <b>nộp trễ</b>) — nộp trễ chỉ được nộp <b>1 lần</b>, kiểm tra kỹ trước khi bấm.');
-
-        if (khoa && dapAn) {
-            let dung = 0;
-            for (let i = 0; i < t.soCau; i++) if (traLoi[i] !== '-' && traLoi[i] === dapAn[i]) dung++;
-            const diem = Math.round(dung / t.soCau * 1000) / 100;
-            $('p-ket-qua').innerHTML = `<div class="msg msg-info d-flex align-items-center gap-3 flex-wrap"><span class="diem-to">${dung}/${t.soCau}</span><span>câu đúng · thang 10: <b>${diem}</b><br><span class="small">Ô xanh = em chọn đúng · ô đỏ = em chọn sai · viền xanh = đáp án đúng</span></span></div>`;
-        } else if (khoa) {
-            $('p-ket-qua').innerHTML = '<div class="msg msg-info">Giáo viên chưa nhập đáp án tuần này — quay lại sau nhé.</div>';
+        if (!p && het) msg('warn', '<i class="fa-solid fa-triangle-exclamation"></i> Đã quá hạn nộp. Em vẫn có thể nộp — bài sẽ ghi nhận là <b>nộp trễ</b>.');
+        else if (p) {
+            const tre = p.nopLuc && p.nopLuc > t.hanNop;
+            let m = `<i class="fa-solid fa-circle-check"></i> Em đã nộp${tre ? ' <b>trễ</b>' : ''} lúc ${ngayGio(p.nopLuc)}.`;
+            if (!daMoLoiGiai(t)) m += t.moLoiGiai ? ` Đáp án từng câu và lời giải sẽ hiện từ ${ngayGio(t.moLoiGiai)}.` : ' Đáp án từng câu và lời giải sẽ hiện sau buổi sửa bài trên lớp.';
+            msg(tre ? 'warn' : 'ok', m);
         }
+        veKetQua(p, dapAn);
         vePhieu(dapAn);
         $('thanh-nop').style.display = khoa ? 'none' : 'flex';
         $('p-huong-dan').style.display = khoa ? 'none' : '';
+
+        // Theo dõi phiếu đã nộp để hiện số câu đúng ngay khi Sheet chấm xong
+        const ref = db.collection('btvn_bainop').doc(user.uid + '_' + t.id);
+        if (p && p.soDung == null && ref.onSnapshot) {
+            boNghe = ref.onSnapshot(s => {
+                if (!s.exists || hienTai !== t) return;
+                const moi = tuPhieu(s.data());
+                if (moi.soDung != null) { phieuCua[t.id] = moi; veKetQua(moi, dapAn); veDanhSach(); }
+            }, e => console.error(e));
+        }
     }
 
-    function msg(kind, html) { $('p-msg').innerHTML = `<div class="msg msg-${kind}">${html}</div>`; }
+    function veKetQua(p, dapAn) {
+        const t = hienTai;
+        if (!p) { $('p-ket-qua').innerHTML = ''; return; }
+        let soDung = p.soDung;
+        if (soDung == null && dapAn) {
+            soDung = 0;
+            for (let i = 0; i < t.soCau; i++) if (traLoi[i] !== '-' && traLoi[i] === dapAn[i]) soDung++;
+        }
+        if (soDung == null) {
+            $('p-ket-qua').innerHTML = `<div class="msg msg-info"><i class="fa-solid fa-spinner fa-spin"></i> Đang chấm bài… số câu đúng sẽ hiện ở đây sau khoảng 1 phút (không cần tải lại trang).</div>`;
+            return;
+        }
+        const diem = Math.round(soDung / t.soCau * 1000) / 100;
+        $('p-ket-qua').innerHTML = `<div class="msg msg-info d-flex align-items-center gap-3 flex-wrap"><span class="diem-to">${soDung}/${t.soCau}</span>
+            <span>câu đúng · thang 10: <b>${diem}</b>${dapAn ? '<br><span class="small">Ô xanh = em chọn đúng · ô đỏ = em chọn sai · viền xanh = đáp án đúng</span>' : ''}</span></div>`;
+    }
 
     function vePhieu(dapAn) {
         const t = hienTai;
@@ -143,15 +183,16 @@
         traLoi[i] = traLoi[i] === c ? '-' : c;   // bấm lại lần nữa để bỏ chọn
         b.parentElement.querySelectorAll('.o').forEach(o => o.classList.toggle('chon', traLoi[i] === o.dataset.c));
         demChon();
-        if (!phieuCua[hienTai.id]) luuNhap();
+        luuNhap();
     });
 
     $('btn-nop').addEventListener('click', async () => {
         const t = hienTai;
         const trong = traLoi.map((c, i) => c === '-' ? i + 1 : 0).filter(Boolean);
         const het = Date.now() > t.hanNop.getTime();
-        let hoi = trong.length ? `Còn ${trong.length} câu chưa chọn (${trong.slice(0, 15).join(', ')}${trong.length > 15 ? '…' : ''}). Vẫn nộp?` : 'Nộp bài?';
-        if (het) hoi += '\n\nĐã quá hạn: bài sẽ ghi NỘP TRỄ và không sửa lại được.';
+        let hoi = (trong.length ? `Còn ${trong.length} câu chưa chọn (${trong.slice(0, 15).join(', ')}${trong.length > 15 ? '…' : ''}).\n` : '') +
+            'Mỗi tuần chỉ nộp 1 lần — nộp rồi KHÔNG sửa được nữa. Nộp bài?';
+        if (het) hoi += '\n\n(Đã quá hạn: bài sẽ ghi nhận là nộp trễ.)';
         if (!window.confirm(hoi)) return;
         const btn = $('btn-nop'); btn.disabled = true;
         try {
@@ -161,15 +202,16 @@
                 ten: (user.displayName || '').slice(0, 100),
                 tuanId: t.id,
                 traLoi: traLoi.join(''),
-                nopLuc: firebase.firestore.FieldValue.serverTimestamp()
+                nopLuc: firebase.firestore.FieldValue.serverTimestamp(),
+                daCham: false
             });
             xoaNhap();
-            phieuCua[t.id] = { traLoi: traLoi.join(''), nopLuc: new Date() };
+            phieuCua[t.id] = { traLoi: traLoi.join(''), nopLuc: new Date(), daCham: false, soDung: null };
             await moTuan(t.id);
         } catch (e) {
             console.error(e);
             msg('err', 'Không nộp được: ' + (e.code === 'permission-denied'
-                ? 'không có quyền (có thể đã hết hạn và em đã nộp rồi, hoặc Gmail chưa được đăng ký). Tải lại trang để xem trạng thái mới nhất.'
+                ? 'em đã nộp bài tuần này rồi, hoặc Gmail chưa được đăng ký. Tải lại trang để xem trạng thái mới nhất.'
                 : esc(e.message)) + ' — Đáp án em chọn vẫn còn trên trang, đừng tắt trang.');
         } finally { btn.disabled = false; }
     });

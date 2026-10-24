@@ -12,11 +12,11 @@
 //   chỉ đọc bài của mình; giáo viên đọc được tất cả.
 // - btvn/{tuan}: thông tin bài tập tuần (tên, số câu, hạn nộp, link đề) —
 //   học sinh trong danh sách đọc được, chỉ giáo viên sửa.
-// - btvn_dapan/{tuan}: đáp án — học sinh CHỈ đọc được sau hạn nộp VÀ khi
-//   đã nộp bài tuần đó (nộp trễ cũng được, nhưng nộp rồi mới thấy).
-// - btvn_bainop/{uid}_{tuan}: phiếu trả lời — mỗi em chỉ đọc/ghi phiếu của
-//   mình; được nộp lại nhiều lần TRƯỚC hạn; sau hạn chỉ được nộp 1 lần (trễ)
-//   nếu chưa nộp, nộp rồi thì khoá. Giáo viên đọc tất cả.
+// - btvn_dapan/{tuan}: đáp án — học sinh CHỈ đọc được từ ngày giáo viên
+//   đặt "moLoiGiai" (sau buổi sửa bài) VÀ khi đã nộp bài tuần đó.
+// - btvn_bainop/{uid}_{tuan}: phiếu trả lời — mỗi em chỉ đọc phiếu của mình
+//   và chỉ NỘP 1 LẦN (không sửa được). Số câu đúng (soDung) do Google Sheet
+//   của giáo viên chấm và ghi vào — học sinh không tự ghi được.
 // =========================================================================
 rules_version = '2';
 service cloud.firestore {
@@ -52,7 +52,8 @@ service cloud.firestore {
     function phieuHopLe(id) {
       let d = request.resource.data;
       return duocPhep()
-          && d.keys().hasOnly(['uid', 'email', 'ten', 'tuanId', 'traLoi', 'nopLuc'])
+          && d.keys().hasOnly(['uid', 'email', 'ten', 'tuanId', 'traLoi', 'nopLuc', 'daCham'])
+          && d.daCham == false
           && d.uid == request.auth.uid
           && d.email == emailCuaToi()
           && d.ten is string && d.ten.size() <= 100
@@ -72,7 +73,8 @@ service cloud.firestore {
     match /btvn_dapan/{t} {
       allow get: if laGiaoVien()
                  || (duocPhep()
-                     && tuan(t).hanNop < request.time
+                     && tuan(t).get('moLoiGiai', null) != null
+                     && tuan(t).moLoiGiai < request.time
                      && exists(/databases/$(database)/documents/btvn_bainop/$(request.auth.uid + '_' + t)));
       allow list: if laGiaoVien();
       allow write: if laGiaoVien();
@@ -83,10 +85,7 @@ service cloud.firestore {
                  || (duocPhep() && id.matches(request.auth.uid + '_.+'));
       allow list: if laGiaoVien();
       allow create: if phieuHopLe(id);
-      allow update: if phieuHopLe(id)
-                    && resource.data.uid == request.auth.uid
-                    && tuan(resource.data.tuanId).hanNop > request.time;
-      allow delete: if laGiaoVien();
+      allow update, delete: if laGiaoVien();
     }
 
     match /ketqua/{docId} {

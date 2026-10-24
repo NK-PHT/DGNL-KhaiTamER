@@ -1,6 +1,10 @@
 // =========================================================================
-// GOOGLE SHEET "BẢNG NỘP BÀI TẬP TUẦN" — tự đọc dữ liệu từ web ĐGNL
-// (Firestore project dgnl-2027) rồi tô màu từng ô:
+// GOOGLE SHEET "BẢNG NỘP BÀI TẬP TUẦN" — làm 2 việc cho web ĐGNL
+// (Firestore project dgnl-2027):
+//  1) CHẤM BÀI (mỗi 1 phút): phiếu nào mới nộp (daCham = false) thì so với
+//     đáp án, ghi số câu đúng (soDung) vào phiếu → học sinh thấy ngay trên
+//     web. Đáp án chỉ nằm ở máy chủ, máy học sinh không đọc được.
+//  2) VẼ BẢNG (mỗi 5 phút) — tab "Nộp BTVN", tô màu từng ô:
 //   xanh  = nộp đúng hạn (kèm số câu đúng, nếu đã nhập đáp án)
 //   vàng  = nộp trễ
 //   đỏ    = đã hết hạn mà chưa nộp
@@ -16,23 +20,93 @@ const MAU = { xanh: '#b7e1cd', vang: '#fce8b2', do: '#f4c7c3', trang: '#ffffff',
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('ĐGNL')
-    .addItem('Cập nhật ngay', 'capNhatBang')
-    .addItem('Bật tự cập nhật mỗi 10 phút', 'batTuDong')
-    .addItem('Tắt tự cập nhật', 'tatTuDong')
+    .addItem('Cập nhật ngay (chấm bài + vẽ bảng)', 'capNhatNgay')
+    .addItem('Bật tự động (chấm mỗi 1 phút, bảng mỗi 5 phút)', 'batTuDong')
+    .addItem('Tắt tự động', 'tatTuDong')
+    .addSeparator()
+    .addItem('Chấm lại tất cả (sau khi sửa đáp án)', 'chamLaiTatCa')
     .addToUi();
 }
 
 function batTuDong() {
   tatTuDong();
-  ScriptApp.newTrigger('capNhatBang').timeBased().everyMinutes(10).create();
-  capNhatBang();
-  SpreadsheetApp.getActive().toast('Đã bật: bảng tự cập nhật mỗi 10 phút.', 'ĐGNL');
+  ScriptApp.newTrigger('chamBai').timeBased().everyMinutes(1).create();
+  ScriptApp.newTrigger('capNhatBang').timeBased().everyMinutes(5).create();
+  capNhatNgay();
+  SpreadsheetApp.getActive().toast('Đã bật: chấm bài mỗi 1 phút, bảng cập nhật mỗi 5 phút.', 'ĐGNL');
 }
 
 function tatTuDong() {
   ScriptApp.getProjectTriggers()
-    .filter(t => t.getHandlerFunction() === 'capNhatBang')
+    .filter(t => ['capNhatBang', 'chamBai'].indexOf(t.getHandlerFunction()) !== -1)
     .forEach(t => ScriptApp.deleteTrigger(t));
+}
+
+function capNhatNgay() {
+  chamBai();
+  capNhatBang();
+}
+
+// ---------- Chấm bài ----------
+const API_ = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents';
+function goi_(method, url, body) {
+  const res = UrlFetchApp.fetch(url, {
+    method: method, contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken(), 'x-goog-user-project': PROJECT_ID },
+    payload: body ? JSON.stringify(body) : undefined
+  });
+  if (res.getResponseCode() !== 200) throw new Error(method + ' ' + url.slice(-60) + ' → mã ' + res.getResponseCode() + ': ' + res.getContentText().slice(0, 300));
+  return JSON.parse(res.getContentText() || '{}');
+}
+
+function demDung_(traLoi, dapAn, soCau) {
+  let d = 0;
+  for (let k = 0; k < soCau; k++) if (traLoi[k] && traLoi[k] !== '-' && traLoi[k] === dapAn[k]) d++;
+  return d;
+}
+
+function ghiDiem_(id, soDung) {
+  goi_('patch', API_ + '/btvn_bainop/' + encodeURIComponent(id) +
+    '?updateMask.fieldPaths=soDung&updateMask.fieldPaths=daCham&updateMask.fieldPaths=chamLuc', {
+    fields: { soDung: { integerValue: String(soDung) }, daCham: { booleanValue: true }, chamLuc: { timestampValue: new Date().toISOString() } }
+  });
+}
+
+// Chấm các phiếu chưa chấm (daCham = false). Phiếu của tuần chưa có đáp án thì để lại, lần sau chấm.
+function chamBai() {
+  const kq = goi_('post', API_ + ':runQuery', { structuredQuery: {
+    from: [{ collectionId: 'btvn_bainop' }],
+    where: { fieldFilter: { field: { fieldPath: 'daCham' }, op: 'EQUAL', value: { booleanValue: false } } },
+    limit: 500 } });
+  const phieu = (kq || []).filter(r => r.document).map(r => Object.assign({ _id: decodeURIComponent(r.document.name.split('/').pop()) }, giaiMa_(r.document.fields || {})));
+  if (!phieu.length) return 0;
+  const tuan = {}, dapAn = {};
+  docCollection_('btvn').forEach(t => { tuan[t._id] = t; });
+  docCollection_('btvn_dapan').forEach(d => { dapAn[d._id] = d.dapAn || ''; });
+  let n = 0;
+  phieu.forEach(p => {
+    const t = tuan[p.tuanId], da = dapAn[p.tuanId] || '';
+    if (!t || !/[ABCD]/.test(da)) return;
+    ghiDiem_(p._id, demDung_(p.traLoi || '', da, t.soCau));
+    n++;
+  });
+  return n;
+}
+
+// Sau khi giáo viên sửa đáp án: chấm lại toàn bộ phiếu đã nộp.
+function chamLaiTatCa() {
+  const tuan = {}, dapAn = {};
+  docCollection_('btvn').forEach(t => { tuan[t._id] = t; });
+  docCollection_('btvn_dapan').forEach(d => { dapAn[d._id] = d.dapAn || ''; });
+  let n = 0;
+  docCollection_('btvn_bainop').forEach(p => {
+    const t = tuan[p.tuanId], da = dapAn[p.tuanId] || '';
+    if (!t || !/[ABCD]/.test(da)) return;
+    const moi = demDung_(p.traLoi || '', da, t.soCau);
+    if (moi !== p.soDung || !p.daCham) { ghiDiem_(p._id, moi); n++; }
+  });
+  capNhatBang();
+  SpreadsheetApp.getActive().toast('Đã chấm lại ' + n + ' phiếu.', 'ĐGNL');
 }
 
 // ---------- Đọc Firestore qua REST ----------
