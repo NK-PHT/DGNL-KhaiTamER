@@ -224,6 +224,27 @@ Màu: **xanh** = nộp đúng hạn (kèm số câu đúng), **vàng** = nộp t
 học sinh (theo danh sách Gmail) là 1 dòng. Đừng sửa tay trong tab này — mỗi
 lần cập nhật sẽ vẽ lại; muốn ghi chú thì tạo tab khác.
 
+## 10. Tự luyện Tiếng Việt, Tiếng Anh, Tư duy khoa học, đề đầy đủ 120 câu
+
+Trang chính có ô **Môn**: Toán (như cũ), Tiếng Việt (30 câu), Tiếng Anh
+(30 câu), Tư duy khoa học (12 câu logic/số liệu + câu suy luận khoa học),
+và **Đề đầy đủ 120 câu** (150 phút). Mỗi lần làm lấy NGUYÊN phần của 1 đề
+thi thử (giữ đúng thứ tự, đoạn đọc dùng chung, số câu như đề thật); chọn
+đề cụ thể hoặc ngẫu nhiên. Đề 120 câu có điểm riêng từng phần.
+
+- Dữ liệu: `data/de-mon/manifest.js` + `data/de-mon/lN.js` (mỗi đề 1 file,
+  chỉ tải khi chọn) và ảnh trong `data/anh/lN/`.
+- Được tạo tự động từ các file **"... ĐÁP ÁN.docx"** của từng lần thi thử
+  bằng công cụ trong `cong-cu-chuyen-de/` (đáp án = phương án được TÔ MÀU;
+  lời giải = phần có trong file đáp án mà không có trong file đề HS).
+- Phần Logic (câu 91–102) và Toán lấy từ phần Toán có sẵn trên web
+  ("Đề luyện tập số N"). Vì vậy **đề 120 câu** chỉ có ở các lần có cả hai
+  (hiện là đề 13–17).
+- `cong-cu-chuyen-de/KIEM-TRA-DAP-AN.md`: các câu lời giải và phần tô màu
+  ghi khác nhau, và các câu chưa đưa lên được — cần thầy/cô xem lại.
+- Thêm đề mới: gửi file ĐÁP ÁN + file đề HS (.docx) của lần đó cho Claude
+  để chạy công cụ chuyển đổi.
+
 ## 6. Các phần đã hoàn thành / còn giới hạn
 
 - ✅ Chuyên đề riêng theo từng chương (dữ liệu từ thư mục `DanhGiaNangLuc`).

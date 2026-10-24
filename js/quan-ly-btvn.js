@@ -180,7 +180,7 @@
         const daNop = bangHS.filter(r => r.nop), soTre = bangHS.filter(r => r.tre).length;
         const tb = coDA && daNop.length ? daNop.reduce((s, r) => s + r.dung, 0) / daNop.length : null;
         $('kq-tom-tat').innerHTML = `Hạn nộp ${ngayGio(t.hanNop)} · đã nộp <b>${daNop.length}</b>/${bangHS.length} (${soTre} trễ)` +
-            (tb != null ? ` · trung bình <b>${tb.toFixed(1)}</b>/${t.soCau} câu đúng` : ' · <span class="text-danger">chưa có đáp án — chưa chấm được</span>') +
+            (!coDA ? ' · <span class="text-danger">chưa có đáp án — chưa chấm được</span>' : tb != null ? ` · trung bình <b>${tb.toFixed(1)}</b>/${t.soCau} câu đúng` : '') +
             ` · link gửi học sinh: <a href="${linkTuan(id)}" target="_blank">${esc(linkTuan(id))}</a>`;
 
         $('tab-hs').innerHTML = `<table><thead><tr><th>#</th><th>Họ và tên</th><th>Email</th><th>Trạng thái</th><th>Nộp lúc</th><th>Đúng</th><th>Thang 10</th><th>Bỏ trống</th></tr></thead><tbody>` +

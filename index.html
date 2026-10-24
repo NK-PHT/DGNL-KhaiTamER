@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ĐGNL - Hệ Thống Luyện Thi Thông Minh</title>
+    <title>Luyện thi ĐGNL — Khai Tâm</title>
     <link rel="icon" type="image/png" href="assets/favicon.png">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap" rel="stylesheet">
 
     <script>
         window.MathJax = {
@@ -35,232 +35,124 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 
+    <link rel="stylesheet" href="css/giao-dien.css?v=20261024b">
     <style>
-        :root {
-            color-scheme: light;
-            /* Tông màu chủ đạo: xanh lá (thay cho xanh dương/tím trước đây
-               để tránh trùng tông với site I-Math-HighSchool). Ghi đè biến
-               của Bootstrap để các thành phần mặc định (focus ring, ô check,
-               .text-primary...) cũng tự động đổi màu theo. */
-            --bs-primary: #16a34a;
-            --bs-primary-rgb: 22, 163, 74;
-        }
-        body {
-            background: #f8fafc;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            color: #1e293b;
-            min-height: 100vh;
-            margin: 0;
-        }
-
-        /* ============ MÀN HÌNH ĐĂNG NHẬP ============ */
-        #login-overlay {
-            position: fixed; inset: 0; z-index: 2000;
-            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-            display: flex; align-items: center; justify-content: center;
-            padding: 20px;
-        }
-        .login-card {
-            background: #ffffff; border-radius: 20px; padding: 40px 32px;
-            max-width: 420px; width: 100%; text-align: center;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.25);
-        }
-        .login-logo { max-width: 200px; width: 100%; height: auto; margin-bottom: 16px; }
-        .login-card .logo-title {
-            font-size: 1.25rem; font-weight: 800;
-            background: linear-gradient(45deg, #16a34a, #15803d);
-            -webkit-background-clip: text; background-clip: text;
-            -webkit-text-fill-color: transparent; margin-bottom: 6px;
-            cursor: pointer;
-        }
-        .login-card .logo-sub { color: #64748b; font-size: 0.9rem; margin-bottom: 24px; }
-        .login-input {
-            width: 100%; border: 1px solid #cbd5e1; border-radius: 12px;
-            padding: 12px 16px; font-size: 0.95rem; margin-bottom: 12px; color: #1e293b;
-            outline: none; transition: all 0.2s ease;
-        }
-        .login-input:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15); }
-        .btn-login-submit {
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-            background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px;
-            padding: 12px 18px; width: 100%; font-weight: 700; color: #1e293b;
-            cursor: pointer; transition: all 0.2s ease;
-        }
-        .btn-login-submit:hover { background: #f8fafc; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        .btn-login-submit:disabled { opacity: 0.7; cursor: default; }
-        .btn-login-submit img { width: 20px; height: 20px; }
-        .login-error {
-            display: none; margin-top: 16px; padding: 12px; border-radius: 10px;
-            background: #fee2e2; color: #b91c1c; font-size: 0.85rem; font-weight: 600;
-        }
-        .login-loading { display: none; margin-top: 16px; color: #64748b; font-size: 0.85rem; }
-
-        /* ============ HEADER TỔNG ============ */
-        .app-header {
-            background: #ffffff;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 12px 20px;
-            position: sticky; top: 0; z-index: 1030;
-            display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-        }
-        .header-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-        .header-logo { height: 38px; width: auto; flex-shrink: 0; }
-        .main-title {
-            font-size: 1.1rem; font-weight: 800;
-            background: linear-gradient(45deg, #16a34a, #15803d);
-            -webkit-background-clip: text; background-clip: text;
-            -webkit-text-fill-color: transparent; margin: 0;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            cursor: pointer;
-        }
-
-        /* ============ THÔNG TIN ĐỘI NGŨ GIÁO VIÊN ============ */
-        .teacher-subject { font-weight: 800; color: #15803d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.3px; margin: 18px 0 8px; }
-        .teacher-subject:first-child { margin-top: 0; }
-        .teacher-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; }
-        .teacher-item i { color: #16a34a; margin-top: 3px; flex-shrink: 0; }
-        .teacher-item .t-name { font-weight: 700; color: #0f172a; }
-        .teacher-item .t-degree { font-size: 0.85rem; color: #64748b; }
-        .user-badge {
-            display: flex; align-items: center; gap: 10px;
-            background: #f1f5f9; border-radius: 999px; padding: 6px 14px 6px 6px;
-        }
+        /* ===== Trang luyện đề — phần riêng (màu/chữ chung ở css/giao-dien.css) ===== */
+        .user-badge { display: flex; align-items: center; gap: 10px; padding: 4px 6px 4px 4px; border-radius: 999px; }
         .user-badge .u-avatar-icon {
-            width: 28px; height: 28px; border-radius: 50%; overflow: hidden;
-            background: linear-gradient(45deg, #16a34a, #15803d); color: #fff;
-            display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+            width: 30px; height: 30px; border-radius: 50%; overflow: hidden; background: var(--troi);
+            color: #fff; display: flex; align-items: center; justify-content: center; font-size: .8rem;
         }
-        .user-badge .u-email { font-size: 0.8rem; font-weight: 600; color: #334155; }
-        .btn-logout { border: none; background: none; color: #94a3b8; font-size: 0.8rem; cursor: pointer; }
-        .btn-logout:hover { color: #ef4444; }
+        .user-badge .u-email { font-size: .85rem; font-weight: 500; color: var(--muc); }
+        .btn-logout { border: none; background: none; color: var(--muc-mo); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; }
+        .btn-logout:hover { color: var(--sai); background: var(--sai-nhat); }
+        .main-title { cursor: pointer; }
 
-        /* ============ BỐ CỤC ============ */
-        .main-layout { display: flex; flex-direction: column; gap: 20px; padding: 20px; max-width: 1200px; margin: 0 auto; }
-        .sidebar-panel { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; height: fit-content; }
-        .exam-panel { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; }
-
-        .progress-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 6px;
-            margin-top: 10px; max-height: 260px; overflow-y: auto; padding-right: 4px;
-        }
-        .progress-grid::-webkit-scrollbar { width: 6px; }
-        .progress-grid::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
-        .progress-box {
-            height: 36px; display: flex; align-items: center; justify-content: center;
-            border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 700; font-size: 0.85rem;
-            color: #64748b; background: #f8fafc; cursor: pointer; transition: all 0.2s ease;
-        }
-        /* Gói chung các ô tiến độ của 1 cụm câu dùng chung dữ kiện, để học
-           sinh dễ nhận ra các câu này liên quan đến nhau. */
-        .progress-cum-wrap {
-            grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px;
-            padding: 5px; border: 1px dashed #16a34a; border-radius: 8px; background: #f0fdf4;
-        }
-        .progress-cum-wrap .progress-box { flex: 1 1 34px; }
-        .progress-box.answered { background: #16a34a; border-color: #16a34a; color: #ffffff; }
-        .progress-box.active { box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.3); border-color: #16a34a; }
-        .progress-box.correct-box { background: #dcfce7; border-color: #22c55e; color: #15803d; }
-        .progress-box.wrong-box { background: #fee2e2; border-color: #ef4444; color: #b91c1c; }
-
+        /* Đồng hồ: viên thuốc trên thanh đầu trang, đổi màu khi còn ít giờ */
         .timer-box {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: white; border-radius: 12px; padding: 12px; font-weight: 800; font-size: 1.4rem;
-            text-align: center; display: none; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+            display: none; order: 2; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 1.05rem;
+            padding: 6px 16px; border-radius: 999px; background: var(--troi-nhat); color: var(--troi-dam);
+            border: 1px solid var(--troi-vien);
         }
-        /* Đồng hồ đếm giờ đặt ngay trên thanh header (luôn dính ở đầu trang,
-           position: sticky) để học sinh luôn nhìn thấy thời gian còn lại dù
-           đang cuộn xem câu hỏi nào, thay vì phải cuộn lên đầu sidebar. */
-        .app-header .timer-box {
-            padding: 6px 20px; font-size: 1.15rem; border-radius: 10px;
-            order: 2;
-        }
+        .timer-box.sap-het { background: var(--sai-nhat); color: var(--sai); border-color: #f0c4c4; }
         .app-header .user-badge { order: 3; }
 
-        .group-block { border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 25px; }
-        .group-block:last-child { border: none; }
-        /* Cụm nhiều câu dùng chung dữ kiện: LUÔN bọc trong 1 khung riêng rõ
-           ràng (viền + nền nhạt bao quanh TOÀN BỘ các câu con) để ranh giới
-           "câu nào thuộc cụm nào" rõ ràng ngay cả khi cụm không có đoạn
-           "dữ kiện chung" tách riêng — tránh tình trạng chỉ có 1 đường viền
-           dọc kéo dài liên tục qua nhiều câu không rõ điểm bắt đầu/kết thúc. */
-        .group-block-cum {
-            border: 2px solid #bbf7d0; background: #ffffff; border-radius: 14px;
-            padding: 16px 18px 6px; margin-bottom: 25px;
-        }
-        .group-block-cum .question-item:last-child { border-bottom: none; margin-bottom: 6px; padding-bottom: 6px; }
-        .group-block-cum:last-child { border: 2px solid #bbf7d0; }
-        .shared-context {
-            background: #ffffff; border: 1px solid #bbf7d0; border-left: 5px solid #16a34a;
-            border-radius: 0 10px 10px 0; padding: 12px 16px; margin-bottom: 14px;
-            font-size: 0.92rem; color: #14532d; font-weight: 600;
-        }
-        /* Câu dẫn dùng chung: viết như văn phong đề thi thật ("Dựa vào thông
-           tin sau, trả lời các câu hỏi ...") — chữ đậm bình thường, KHÔNG
-           còn kiểu huy hiệu (badge) tròn màu như trước, để giống đề gốc. */
-        .shared-context-label {
-            display: block; color: #15803d; font-weight: 800;
-            font-size: 0.9rem; margin-bottom: 10px;
-        }
-        .question-item { border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 20px; }
-        .question-item:last-child { border: none; }
-        .question-text { font-size: 0.95rem; font-weight: 600; color: #0f172a; line-height: 1.6; }
+        /* Bố cục */
+        .main-layout { display: flex; flex-direction: column; gap: 20px; padding: 20px; max-width: 1240px; margin: 0 auto; }
+        .sidebar-panel { padding: 20px; height: fit-content; }
+        .sidebar-panel .tieu-de-cot { font-size: 1rem; font-weight: 600; margin: 0 0 16px; color: var(--muc); }
+        .exam-panel { padding: 28px 36px; }
+        .ten-de { font-size: 1.2rem; font-weight: 600; margin: 0 0 4px; color: var(--muc); }
+        .meta-de { color: var(--muc-nhat); font-size: .88rem; margin-bottom: 18px; }
+        #exam-head { display: none; border-bottom: 1px solid var(--vien); margin-bottom: 8px; }
+        .trang-thai-nap { font-size: .8rem; color: var(--muc-mo); margin-top: 8px; }
+        .lien-ket-phu { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--vien); }
+        .lien-ket-phu .nut, .lien-ket-phu .nut-phu { padding: .55rem .5rem; font-size: .85rem; }
+        .btn-custom-generate { width: 100%; padding: .75rem; font-size: 1rem; }
+        #check-timer + label { font-size: .88rem; }
 
-        .custom-option-wrapper {
-            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
-            padding: 10px 14px; margin-top: 8px; cursor: pointer; display: flex; align-items: center;
+        /* Màn hình chờ: cấu trúc 120 câu của đề ĐGNL */
+        .cho-bat-dau { max-width: 640px; margin: 24px auto; }
+        .cho-bat-dau h2 { font-size: 1.35rem; font-weight: 600; margin-bottom: 6px; }
+        .cho-bat-dau p { color: var(--muc-nhat); line-height: 1.6; }
+        .cau-truc { display: grid; grid-template-columns: 60fr 30fr 30fr; gap: 6px; margin: 26px 0 8px; }
+        .cau-truc .khoi { border-radius: 6px; padding: 10px 12px; color: #fff; min-height: 86px; display: flex; flex-direction: column; justify-content: space-between; }
+        .cau-truc .khoi b { font-weight: 600; font-size: .95rem; }
+        .cau-truc .khoi span { font-size: .8rem; opacity: .9; line-height: 1.4; }
+        .khoi-1 { background: var(--troi); } .khoi-2 { background: var(--troi-dam); } .khoi-3 { background: var(--muc); }
+        .thuoc-cau { display: grid; grid-template-columns: 60fr 30fr 30fr; gap: 6px; font-size: .75rem; color: var(--muc-mo); font-variant-numeric: tabular-nums; }
+        .thuoc-cau span:last-child { text-align: right; }
+
+        /* Tiêu đề phần trong đề */
+        .tieu-de-phan {
+            margin: 30px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--troi);
+            font-weight: 600; font-size: 1.05rem; color: var(--troi-dam);
         }
-        .custom-option-wrapper:hover { background: #f1f5f9; border-color: #cbd5e1; }
-        .form-check-input { width: 1.1rem; height: 1.1rem; flex-shrink: 0; border: 2px solid #64748b; }
-        .form-check-label { color: #334155; margin-left: 8px; font-size: 0.9rem; width: 100%; cursor: pointer; }
-        .form-check-input:checked ~ .form-check-label { color: #15803d; font-weight: 700; }
+        #questions-container > .tieu-de-phan:first-child { margin-top: 8px; }
 
-        .custom-option-wrapper.option-correct { background: #dcfce7; border-color: #22c55e; }
-        .custom-option-wrapper.option-correct .form-check-label { color: #15803d; font-weight: 700; }
-        .custom-option-wrapper.option-wrong { background: #fee2e2; border-color: #ef4444; }
-        .custom-option-wrapper.option-wrong .form-check-label { color: #b91c1c; font-weight: 700; }
+        #submit-wrap { border-top: 1px solid var(--vien); padding-top: 20px; }
+        .btn-custom-submit { width: 100%; padding: .85rem; font-size: 1.05rem; }
+        .score-display-box { border: 1px solid var(--vien); border-radius: var(--bo); padding: 18px 20px; background: var(--mat); }
+        .score-display-box .diem-lon { font-size: 2.2rem; font-weight: 600; color: var(--troi-dam); font-variant-numeric: tabular-nums; line-height: 1; }
 
-        .explain-box {
-            display: none; background-color: #f0fdf4; padding: 12px; margin-top: 10px;
-            border-radius: 8px; font-size: 0.85rem; color: #14532d; border: 1px solid #bbf7d0;
-            max-width: 100%; overflow-x: hidden; word-wrap: break-word; overflow-wrap: break-word;
+        /* ===== Phiếu trả lời (giống phiếu tô trắc nghiệm) ===== */
+        #progress-wrap { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--vien); }
+        .phieu-tieu-de { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+        .phieu-tieu-de b { font-weight: 600; font-size: .95rem; }
+        .phieu-tieu-de span { font-size: .8rem; color: var(--muc-mo); font-variant-numeric: tabular-nums; }
+        .progress-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; max-height: 46vh; overflow-y: auto;
+            padding: 10px 8px; background: #fbfcfd; border: 1px solid var(--vien); border-radius: var(--bo-nho);
         }
-        .explain-box img, .question-text img { max-width: 100%; height: auto; display: block; margin: 8px auto; }
-        .nguon-cau {
-            margin-top: 10px; font-size: 0.78rem; font-style: italic; color: #4b7c63;
-            border-top: 1px dashed #bbf7d0; padding-top: 6px;
+        .progress-grid::-webkit-scrollbar { width: 6px; }
+        .progress-grid::-webkit-scrollbar-thumb { background: #c9d3dc; border-radius: 999px; }
+        .progress-box { display: flex; align-items: center; gap: 4px; padding: 2px 2px; border-radius: 6px; }
+        .progress-box .so { width: 28px; text-align: right; padding-right: 4px; font-size: .78rem; font-weight: 600; color: var(--muc-nhat); cursor: pointer; font-variant-numeric: tabular-nums; }
+        .progress-box .so:hover { color: var(--troi-dam); text-decoration: underline; }
+        .progress-box .o {
+            width: 20px; height: 20px; border-radius: 50%; border: 1.25px solid #a9b4bf; background: #fff;
+            font-size: .62rem; font-weight: 600; color: #8a95a1; padding: 0; line-height: 1; font-family: var(--font-ui);
         }
-        mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: hidden; display: block !important; }
-        .question-text, .explain-box, .form-check-label, .shared-context { word-wrap: break-word; overflow-wrap: break-word; }
+        .progress-box .o:hover { border-color: var(--troi); color: var(--troi-dam); }
+        .progress-box .o.chon { background: var(--muc); border-color: var(--muc); color: #fff; }
+        .progress-box .o.dung { background: var(--dung); border-color: var(--dung); color: #fff; }
+        .progress-box .o.sai { background: var(--sai); border-color: var(--sai); color: #fff; }
+        .progress-box .o.dap-an { border: 2px solid var(--dung); color: var(--dung); }
+        .progress-box.wrong-box .so { color: var(--sai); }
+        .progress-box.correct-box .so { color: var(--dung); }
+        .progress-cum-wrap { display: contents; }
+        .progress-cum-wrap .progress-box { background: var(--troi-nhat); }
+        .tieu-de-phan-grid { grid-column: 1 / -1; font-size: .75rem; font-weight: 600; color: var(--troi-dam); margin: 10px 0 4px; }
+        .tieu-de-phan-grid:first-child { margin-top: 0; }
+        .chu-thich-phieu { font-size: .75rem; color: var(--muc-mo); margin-top: 6px; }
+        .chu-thich-phieu i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--troi-nhat); border: 1px solid var(--troi-vien); vertical-align: -1px; margin-right: 3px; }
 
-        .part-header {
-            background: #f1f5f9; padding: 10px 16px; border-left: 4px solid #16a34a; font-weight: 800;
-            color: #15803d; font-size: 0.95rem; margin: 25px 0 15px 0; border-radius: 0 8px 8px 0;
-        }
-        .btn-custom-generate { background: #16a34a; color: white; border: none; width: 100%; padding: 12px; border-radius: 10px; font-weight: 700; }
-        .btn-custom-submit { background: #15803d; color: white; border: none; width: 100%; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 1.05rem; }
-        .score-display-box { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; border-radius: 12px; padding: 15px; font-weight: 700; }
+        /* Đội ngũ giáo viên */
+        .teacher-subject { font-weight: 600; color: var(--troi-dam); font-size: .95rem; margin: 18px 0 6px; }
+        .teacher-subject:first-child { margin-top: 0; }
+        .teacher-item { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; }
+        .teacher-item i { color: var(--troi); margin-top: 3px; flex-shrink: 0; }
+        .teacher-item .t-name { font-weight: 600; }
+        .teacher-item .t-degree { font-size: .85rem; color: var(--muc-nhat); }
 
-        .dgnl-table td { font-size: 0.85rem; }
-
-        .history-item { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-        .history-item .h-score { font-weight: 800; font-size: 1.1rem; }
-        .history-item .h-score.good { color: #15803d; }
-        .history-item .h-score.bad { color: #b91c1c; }
+        .history-item { border: 1px solid var(--vien); border-radius: var(--bo-nho); padding: 12px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .history-item .h-score { font-weight: 600; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+        .history-item .h-score.good { color: var(--dung); }
+        .history-item .h-score.bad { color: var(--sai); }
 
         @media (min-width: 992px) {
             .main-layout { flex-direction: row; align-items: flex-start; }
-            .sidebar-panel {
-                width: 320px; flex-shrink: 0; position: sticky; top: 80px;
-                max-height: calc(100vh - 100px); overflow-y: auto;
-            }
-            .sidebar-panel::-webkit-scrollbar { width: 6px; }
-            .sidebar-panel::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
-            .exam-panel { flex: 1; }
+            .sidebar-panel { width: 330px; flex-shrink: 0; position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow-y: auto; }
+            .exam-panel { flex: 1; min-width: 0; }
+            #questions-container, #submit-wrap, #score-wrap, #exam-head { max-width: 820px; }
         }
         @media (max-width: 576px) {
             body { overflow-x: hidden; }
-            .app-header { padding: 10px 12px; }
-            .main-title { font-size: 1.05rem; }
+            .main-layout { padding: 12px; gap: 12px; }
+            .exam-panel { padding: 18px 16px; }
+            .user-badge .u-email { display: none; }
+            .cau-truc .khoi span { display: none; }
+            .cau-truc .khoi { min-height: 56px; }
         }
     </style>
 </head>
@@ -271,7 +163,7 @@
         <div class="login-card">
             <img src="assets/logo-khai-tam.png" alt="Trung tâm luyện thi Khai Tâm" class="login-logo">
             <div class="logo-title" id="brand-title-login" title="Xem thông tin đội ngũ giáo viên">Luyện thi ĐGNL Khai Tâm</div>
-            <div class="logo-sub">Hệ thống luyện thi Đánh giá năng lực<br>Đăng nhập bằng Gmail đã đăng ký với giáo viên để bắt đầu luyện tập</div>
+            <div class="logo-sub">Luyện đề Đánh giá năng lực ĐHQG-HCM.<br>Đăng nhập bằng Gmail em đã đăng ký với giáo viên.</div>
             <button type="button" class="btn-login-submit" id="btn-dang-nhap">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
                 Đăng nhập bằng Google
@@ -299,53 +191,71 @@
         <div class="main-layout">
             <!-- SIDEBAR -->
             <div class="sidebar-panel">
-                <h6 class="fw-bold text-secondary mb-3"><i class="fa-solid fa-layer-group"></i> Chọn nội dung ôn tập</h6>
+                <h2 class="tieu-de-cot">Luyện đề</h2>
                 <div class="mb-3">
-                    <label class="form-label small fw-bold">Chuyên đề</label>
+                    <label class="form-label" for="select-mon">Môn</label>
+                    <select id="select-mon" class="form-select">
+                        <option value="toan">Toán — theo chuyên đề hoặc đề tổng hợp</option>
+                        <option value="tv">Tiếng Việt — 30 câu</option>
+                        <option value="anh">Tiếng Anh — 30 câu</option>
+                        <option value="kh">Tư duy khoa học — 30 câu</option>
+                        <option value="full">Đề đầy đủ 120 câu</option>
+                    </select>
+                </div>
+                <div class="mb-3" id="wrap-chuyen-de">
+                    <label class="form-label" for="select-chuyen-de">Chuyên đề</label>
                     <select id="select-chuyen-de" class="form-select"></select>
                 </div>
+                <div class="mb-3" id="wrap-de-mon" style="display:none;">
+                    <label class="form-label" for="select-de-mon">Đề</label>
+                    <select id="select-de-mon" class="form-select"></select>
+                    <div class="small text-muted mt-1" id="ghi-chu-de-mon"></div>
+                </div>
                 <div class="mb-3" id="wrap-so-cau">
-                    <label class="form-label small fw-bold">Số câu hỏi</label>
+                    <label class="form-label" for="input-so-cau">Số câu hỏi</label>
                     <input type="number" id="input-so-cau" class="form-control" value="20" min="5" max="200">
                 </div>
                 <div class="mb-3 form-check" id="wrap-check-timer">
                     <input type="checkbox" class="form-check-input" id="check-timer">
-                    <label class="form-check-label small" for="check-timer">Bật đếm giờ làm bài</label>
+                    <label class="form-check-label" for="check-timer">Bật đếm giờ</label>
                 </div>
                 <div class="mb-3" id="timer-minutes-wrap" style="display:none;">
-                    <label class="form-label small fw-bold">Thời gian (phút)</label>
+                    <label class="form-label" for="input-so-phut">Thời gian (phút)</label>
                     <input type="number" id="input-so-phut" class="form-control" value="30" min="1" max="180">
                 </div>
-                <button class="btn btn-custom-generate" id="btn-generate" disabled>
-                    <i class="fa-solid fa-bolt"></i> Tạo đề luyện tập
-                </button>
-                <div class="small text-muted mt-2" id="data-load-status">Đang tải ngân hàng câu hỏi...</div>
-                <hr>
-                <a class="btn btn-success w-100 mb-2 fw-bold" href="btvn.html">
-                    <i class="fa-solid fa-calendar-week"></i> Bài tập tuần (nộp đáp án)
-                </a>
-                <button class="btn btn-outline-secondary w-100" id="btn-show-history">
-                    <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử làm bài
-                </button>
+                <button class="btn btn-custom-generate" id="btn-generate" disabled>Tạo đề</button>
+                <div class="trang-thai-nap" id="data-load-status">Đang tải ngân hàng câu hỏi...</div>
 
                 <div id="progress-wrap" style="display:none;">
-                    <hr>
-                    <div class="part-title fw-bold text-secondary mb-2">Tiến độ làm bài</div>
+                    <div class="phieu-tieu-de"><b>Phiếu trả lời</b><span id="dem-da-lam"></span></div>
                     <div class="progress-grid" id="progress-grid"></div>
+                    <div class="chu-thich-phieu">Bấm ô tròn để chọn đáp án, bấm số câu để tới câu đó. <i></i>câu dùng chung đoạn thông tin.</div>
+                </div>
+
+                <div class="lien-ket-phu">
+                    <a class="nut" href="btvn.html"><i class="fa-solid fa-calendar-week"></i> Bài tập tuần</a>
+                    <button class="nut-phu" id="btn-show-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</button>
                 </div>
             </div>
 
             <!-- KHU VỰC LÀM BÀI -->
             <div class="exam-panel">
-                <div id="welcome-panel" class="text-center text-muted py-5">
-                    <i class="fa-solid fa-arrow-left d-none d-lg-inline"></i>
-                    <p class="mt-3">Chọn chuyên đề và bấm <b>"Tạo đề luyện tập"</b> ở bên để bắt đầu.</p>
+                <div id="welcome-panel" class="cho-bat-dau">
+                    <h2>Chọn môn rồi bấm “Tạo đề”</h2>
+                    <p>Mỗi môn lấy nguyên một phần của đề thi thử, đúng thứ tự và số câu như đề thật. Muốn làm cả bài thi thì chọn “Đề đầy đủ 120 câu” (150 phút).</p>
+                    <div class="cau-truc" aria-label="Cấu trúc đề Đánh giá năng lực 120 câu">
+                        <div class="khoi khoi-1"><b>Sử dụng ngôn ngữ</b><span>Tiếng Việt 30 câu · Tiếng Anh 30 câu</span></div>
+                        <div class="khoi khoi-2"><b>Toán học</b><span>30 câu</span></div>
+                        <div class="khoi khoi-3"><b>Tư duy khoa học</b><span>Logic, số liệu 12 · Suy luận khoa học 18</span></div>
+                    </div>
+                    <div class="thuoc-cau"><span>Câu 1</span><span>61</span><span>91 – 120</span></div>
                 </div>
+                <div id="exam-head"><h2 class="ten-de" id="ten-de"></h2><div class="meta-de" id="meta-de"></div></div>
 
-                <div id="questions-container" class="mt-4"></div>
+                <div id="questions-container"></div>
 
                 <div id="submit-wrap" style="display:none;" class="mt-4">
-                    <button class="btn btn-custom-submit" id="btn-submit"><i class="fa-solid fa-paper-plane"></i> Nộp bài</button>
+                    <button class="btn btn-custom-submit" id="btn-submit">Nộp bài</button>
                 </div>
 
                 <div id="score-wrap" style="display:none;" class="score-display-box mt-4"></div>
@@ -406,10 +316,12 @@
          bản mới, đổi số phía sau ?v= (VD sang ngày/giờ deploy) để đảm bảo
          trình duyệt luôn tải lại đúng bản mới nhất, không cần học sinh/giáo
          viên phải tự xoá cache thủ công. -->
-    <script src="js/firebase-config.js?v=20261021b"></script>
-    <script src="js/auth.js?v=20261021b"></script>
-    <script src="data/manifest.js?v=20261021b"></script>
-    <script src="data/de-that.js?v=20261021b"></script>
-    <script src="js/app.js?v=20261021b"></script>
+    <script src="js/firebase-config.js?v=20261024b"></script>
+    <script src="js/auth.js?v=20261024b"></script>
+    <script src="data/manifest.js?v=20261024b"></script>
+    <script src="data/de-that.js?v=20261024b"></script>
+    <script src="data/de-mon/manifest.js?v=20261024b"></script>
+    <script src="js/app.js?v=20261024b"></script>
+    <script src="js/mon-khac.js?v=20261024b"></script>
 </body>
 </html>

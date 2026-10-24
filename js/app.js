@@ -126,6 +126,11 @@ function coDeThatKhongDe() {
 
 // ---------------- 2. TẠO ĐỀ ----------------
 function taoDe() {
+    const selMon = document.getElementById('select-mon');
+    if (selMon && selMon.value !== 'toan' && window.DGNL_MON_KHAC) {
+        window.DGNL_MON_KHAC.taoDe();
+        return;
+    }
     const chuyenDeId = document.getElementById('select-chuyen-de').value;
     const chuyenDeTen = document.getElementById('select-chuyen-de').selectedOptions[0].textContent;
 
@@ -171,13 +176,20 @@ function taoDe() {
 // Xáo trộn thứ tự 4 đáp án của TỪNG câu trong 1 nhóm/cụm — giữ nguyên THỨ
 // TỰ các câu con trong cụm (câu sau có thể tham chiếu kết quả câu trước).
 function xaoTronDapAnNhom(nhom) {
+    // Đề Văn/Anh/Khoa học (khongXaoTron): giữ nguyên thứ tự A-D như đề gốc —
+    // nhiều câu có phương án kiểu "Cả A và B", hoặc tìm lỗi sai theo thứ tự
+    // các từ gạch chân, xáo trộn sẽ sai nghĩa.
+    if (nhom.khongXaoTron) {
+        return { noiDungChung: nhom.noiDungChung || null, tieuDePhan: nhom.tieuDePhan || '', phan: nhom.phan || '',
+            cauHoi: nhom.cauHoi.map(q => ({ question: q.question, choices: q.choices.slice(), correctIndex: q.correctIndex, explain: q.explain, nguon: q.nguon || '' })) };
+    }
     const cauHoi = nhom.cauHoi.map(q => {
         const order = shuffleArray([0, 1, 2, 3]);
         const choices = order.map(i => q.choices[i]);
         const correctIndex = order.indexOf(q.correctIndex);
         return { question: q.question, choices, correctIndex, explain: q.explain, nguon: q.nguon || '' };
     });
-    return { noiDungChung: nhom.noiDungChung || null, cauHoi };
+    return { noiDungChung: nhom.noiDungChung || null, tieuDePhan: nhom.tieuDePhan || '', phan: nhom.phan || '', cauHoi };
 }
 
 // Khởi tạo currentExam + hiển thị + (tuỳ chọn) chạy đồng hồ đếm giờ — dùng
@@ -233,6 +245,17 @@ function renderExam() {
     document.getElementById('progress-wrap').style.display = 'block';
     document.getElementById('submit-wrap').style.display = 'block';
     document.getElementById('score-wrap').style.display = 'none';
+    // Đầu đề: tên đề + số câu, thời gian
+    const head = document.getElementById('exam-head');
+    if (head) {
+        const tongCau = currentExam.groups.reduce((t, g) => t + g.cauHoi.length, 0);
+        const bd = currentExam.soCauBatDau || 1;
+        document.getElementById('ten-de').textContent = currentExam.chuyenDeTen;
+        document.getElementById('meta-de').textContent = `${tongCau} câu (câu ${bd}–${bd + tongCau - 1})` +
+            (currentExam.timeLeft !== null ? ` · ${Math.round(currentExam.timeLeft / 60)} phút` : ' · không giới hạn thời gian');
+        head.style.display = 'block';
+    }
+    window.scrollTo({ top: 0 });
 
     const container = document.getElementById('questions-container');
     const grid = document.getElementById('progress-grid');
@@ -254,6 +277,16 @@ function renderExam() {
         // rõ ràng nên nhìn như bị lỗi giao diện.
         const isMultiGroup = group.cauHoi.length > 1;
         groupDiv.className = isMultiGroup ? 'group-block group-block-cum' : 'group-block';
+        if (group.tieuDePhan) {
+            const tdp = document.createElement('div');
+            tdp.className = 'tieu-de-phan';
+            tdp.textContent = group.tieuDePhan;
+            container.appendChild(tdp);
+            const tdg = document.createElement('div');
+            tdg.className = 'tieu-de-phan-grid';
+            tdg.textContent = group.tieuDePhan;
+            grid.appendChild(tdg);
+        }
 
         // Câu dẫn dùng chung viết đúng văn phong đề thi thật: "Dựa vào
         // thông tin sau, trả lời các câu hỏi X, Y, Z." — tính sẵn dải số
@@ -296,22 +329,28 @@ function renderExam() {
             const qDiv = document.createElement('div');
             qDiv.className = isMultiGroup ? 'question-item question-item-cum' : 'question-item';
             qDiv.id = 'question-' + globalNo;
+            if (group.phan) qDiv.dataset.phan = group.phan;
 
             const qText = document.createElement('div');
             qText.className = 'question-text';
-            qText.innerHTML = `<span class="text-primary">Câu ${globalNo}:</span> ${q.question}`;
+            qText.innerHTML = `<span class="so-cau">Câu ${globalNo}.</span> ${q.question}`;
             qDiv.appendChild(qText);
 
             q.choices.forEach((choiceHtml, oIdx) => {
                 const wrap = document.createElement('label');
                 wrap.className = 'custom-option-wrapper';
                 wrap.id = `opt-${globalNo}-${oIdx}`;
+                const chu = String.fromCharCode(65 + oIdx);
                 wrap.innerHTML = `
-                    <input class="form-check-input" type="radio" name="q_${globalNo}" value="${oIdx}">
-                    <span class="form-check-label">${String.fromCharCode(65 + oIdx)}. ${choiceHtml}</span>
+                    <input class="form-check-input" type="radio" name="q_${globalNo}" value="${oIdx}" aria-label="Phương án ${chu}">
+                    <span class="bong" aria-hidden="true">${chu}</span>
+                    <span class="form-check-label">${choiceHtml}</span>
                 `;
                 wrap.querySelector('input').addEventListener('change', () => {
-                    document.getElementById('progress-' + globalNo).classList.add('answered');
+                    const hang = document.getElementById('progress-' + globalNo);
+                    hang.classList.add('answered');
+                    hang.querySelectorAll('.o').forEach((o, k) => o.classList.toggle('chon', k === oIdx));
+                    capNhatDemDaLam();
                 });
                 qDiv.appendChild(wrap);
             });
@@ -330,13 +369,20 @@ function renderExam() {
             qDiv.dataset.correct = q.correctIndex;
             groupDiv.appendChild(qDiv);
 
+            // 1 dòng trên "phiếu trả lời": số câu + 4 ô tròn A B C D
             const box = document.createElement('div');
             box.className = 'progress-box';
             box.id = 'progress-' + globalNo;
-            box.textContent = globalNo;
-            box.addEventListener('click', () => {
+            box.innerHTML = `<span class="so" title="Tới câu ${globalNo}">${globalNo}</span>` +
+                q.choices.map((_, k) => `<button type="button" class="o" data-k="${k}" aria-label="Câu ${globalNo} chọn ${String.fromCharCode(65 + k)}">${String.fromCharCode(65 + k)}</button>`).join('');
+            box.querySelector('.so').addEventListener('click', () => {
                 document.getElementById('question-' + globalNo).scrollIntoView({ behavior: 'smooth', block: 'center' });
             });
+            box.querySelectorAll('.o').forEach(o => o.addEventListener('click', () => {
+                if (currentExam.submitted) return;
+                const inp = document.querySelector(`#opt-${globalNo}-${o.dataset.k} input`);
+                if (inp && !inp.disabled) { inp.checked = true; inp.dispatchEvent(new Event('change')); }
+            }));
             (progressGroupWrap || grid).appendChild(box);
         });
 
@@ -345,9 +391,18 @@ function renderExam() {
         container.appendChild(groupDiv);
     });
 
+    capNhatDemDaLam();
     if (window.MathJax && window.MathJax.typesetPromise) {
         window.MathJax.typesetPromise([container]).catch(err => console.error('MathJax lỗi:', err));
     }
+}
+
+function capNhatDemDaLam() {
+    const el = document.getElementById('dem-da-lam');
+    if (!el) return;
+    const tong = document.querySelectorAll('#progress-grid .progress-box').length;
+    const da = document.querySelectorAll('#progress-grid .progress-box.answered').length;
+    el.textContent = `${da}/${tong} câu`;
 }
 
 // ---------------- 4. ĐỒNG HỒ ĐẾM GIỜ ----------------
@@ -369,6 +424,7 @@ function updateTimerDisplay() {
     const mm = String(Math.floor(t / 60)).padStart(2, '0');
     const ss = String(t % 60).padStart(2, '0');
     document.getElementById('timer-display').textContent = `${mm}:${ss}`;
+    document.getElementById('timer-box').classList.toggle('sap-het', t <= 300);
 }
 
 // ---------------- 5. NỘP BÀI & CHẤM ĐIỂM ----------------
@@ -399,6 +455,7 @@ function submitExam() {
     if (!currentExam || currentExam.submitted) return;
     currentExam.submitted = true;
     if (currentExam.timer) clearInterval(currentExam.timer);
+    document.getElementById('timer-box').style.display = 'none';
 
     let soCau = 0, soDung = 0;
     document.querySelectorAll('.question-item').forEach(qDiv => {
@@ -420,6 +477,12 @@ function submitExam() {
         document.getElementById('explain-' + globalNo).style.display = 'block';
         const progBox = document.getElementById('progress-' + globalNo);
         progBox.classList.add(isCorrect ? 'correct-box' : 'wrong-box');
+        progBox.querySelectorAll('.o').forEach((o, k) => {
+            o.classList.remove('chon');
+            if (k === chosenIndex) o.classList.add(isCorrect ? 'dung' : 'sai');
+            else if (k === correctIndex) o.classList.add('dap-an');
+            o.disabled = true;
+        });
     });
 
     // chiTietHtml: lưu lại nguyên trạng HTML của từng CỤM/CÂU (theo đúng thứ
@@ -436,8 +499,22 @@ function submitExam() {
     const diem = Math.round((soDung / soCau) * 10 * 100) / 100;
     const scoreBox = document.getElementById('score-wrap');
     scoreBox.style.display = 'block';
-    scoreBox.innerHTML = `<i class="fa-solid fa-star"></i> Kết quả: đúng ${soDung}/${soCau} câu — Điểm: <span style="font-size:1.3rem;">${diem}</span>/10`;
+    scoreBox.innerHTML = `<div class="d-flex align-items-end gap-3 flex-wrap"><span class="diem-lon">${diem}<small style="font-size:1rem;color:var(--muc-mo)">/10</small></span><span>Đúng <b>${soDung}/${soCau}</b> câu. Xem lời giải ngay dưới từng câu; trên phiếu trả lời, ô xanh là đúng, ô đỏ là sai, ô viền xanh là đáp án.</span></div>`;
     document.getElementById('submit-wrap').style.display = 'none';
+    const theoPhan = {};
+    document.querySelectorAll('.question-item[data-phan]').forEach(qDiv => {
+        const ph = qDiv.dataset.phan;
+        const ok = qDiv.querySelector('input[type=radio]:checked');
+        theoPhan[ph] = theoPhan[ph] || [0, 0];
+        theoPhan[ph][1]++;
+        if (ok && parseInt(ok.value, 10) === parseInt(qDiv.dataset.correct, 10)) theoPhan[ph][0]++;
+    });
+    if (Object.keys(theoPhan).length > 1) {
+        const ct = document.createElement('div');
+        ct.style.cssText = 'font-size:0.88rem;margin-top:10px;color:var(--muc-nhat);';
+        ct.textContent = Object.entries(theoPhan).map(([k, v]) => `${k}: ${v[0]}/${v[1]}`).join(' · ');
+        scoreBox.appendChild(ct);
+    }
 
     const thoiGianLamBai = currentExam.timeLeft !== null
         ? (Math.round((Date.now() - currentExam.startedAt) / 1000))
@@ -449,12 +526,12 @@ function submitExam() {
         if (new Blob([JSON.stringify(chiTietHtml)]).size > 900 * 1024) ketQua.chiTiet = [];
         Promise.resolve(window.DGNL_AUTH.saveResult(ketQua)).then(daLuu => {
             const note = document.createElement('div');
-            note.style.cssText = 'font-size:0.85rem;font-weight:600;margin-top:6px;';
+            note.style.cssText = 'font-size:0.85rem;font-weight:500;margin-top:8px;';
             if (daLuu === false) {
-                note.style.color = '#b91c1c';
+                note.style.color = 'var(--sai)';
                 note.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Chưa lưu được kết quả bài này (lỗi kết nối hoặc quyền truy cập). Hãy chụp màn hình điểm gửi giáo viên.';
             } else {
-                note.style.color = '#15803d';
+                note.style.color = 'var(--dung)';
                 note.innerHTML = '<i class="fa-solid fa-circle-check"></i> Đã lưu kết quả vào lịch sử làm bài.';
             }
             scoreBox.appendChild(note);
@@ -538,9 +615,16 @@ document.getElementById('btn-submit').addEventListener('click', () => {
 });
 document.getElementById('btn-show-history').addEventListener('click', hienThiLichSu);
 
-document.addEventListener('dgnl-auth-ready', () => {
+let daGoiNapDuLieu = false;
+function napDuLieuMotLan() {
+    if (daGoiNapDuLieu) return;
+    daGoiNapDuLieu = true;
     napToanBoDuLieu();
-});
+}
+document.addEventListener('dgnl-auth-ready', napDuLieuMotLan);
+// Phòng trường hợp đăng nhập xong TRƯỚC khi file này kịp tải (sự kiện đã
+// phát rồi) — kiểm tra lại ngay khi file chạy.
+if (window.DGNL_AUTH && window.DGNL_AUTH.user) napDuLieuMotLan();
 
 // Bấm vào cụm từ "Luyện thi ĐGNL Khai Tâm" (ở màn hình đăng nhập lẫn trên
 // header chính) để xem thông tin đội ngũ giáo viên.

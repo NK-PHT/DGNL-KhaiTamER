@@ -7,14 +7,14 @@
     <link rel="icon" type="image/png" href="assets/favicon.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
     <style>
-        :root { color-scheme: light; --g: #16a34a; --gd: #15803d; }
-        body { background: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; color: #1e293b; margin: 0; min-height: 100vh; }
-        #login-overlay { position: fixed; inset: 0; z-index: 2000; background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); display: flex; align-items: center; justify-content: center; padding: 20px; }
+        :root { color-scheme: light; --g: var(--troi); --gd: var(--troi-dam); }
+        body { background: #f8fafc; font-family: var(--font-ui); color: #1e293b; margin: 0; min-height: 100vh; }
+        #login-overlay { position: fixed; inset: 0; z-index: 2000;  display: flex; align-items: center; justify-content: center; padding: 20px; }
         .login-card { background: #fff; border-radius: 20px; padding: 40px 32px; max-width: 420px; width: 100%; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
         .login-card .logo-title { font-size: 1.25rem; font-weight: 800; color: var(--gd); margin-bottom: 6px; }
         .login-card .logo-sub { color: #64748b; font-size: .9rem; margin-bottom: 24px; }
@@ -28,7 +28,7 @@
         .wrap { max-width: 980px; margin: 0 auto; padding: 16px; }
         .card-box { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 18px; margin-bottom: 16px; }
         .tuan-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 8px; cursor: pointer; background: #fff; width: 100%; text-align: left; }
-        .tuan-item:hover, .tuan-item.active { border-color: var(--g); background: #f0fdf4; }
+        .tuan-item:hover, .tuan-item.active { border-color: var(--g); background: var(--troi-nhat); }
         .badge-st { font-size: .75rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
         .st-ok { background: #dcfce7; color: #166534; } .st-late { background: #fef3c7; color: #92400e; }
         .st-none { background: #f1f5f9; color: #475569; } .st-miss { background: #fee2e2; color: #b91c1c; }
@@ -37,17 +37,18 @@
         .khoi-10 { grid-column: 1 / -1; font-size: .8rem; font-weight: 700; color: #64748b; border-bottom: 1px dashed #cbd5e1; margin-top: 8px; padding-bottom: 2px; }
         .dong { display: flex; align-items: center; gap: 6px; }
         .dong .so { width: 34px; text-align: right; font-weight: 700; font-size: .85rem; color: #334155; }
-        .o { width: 34px; height: 34px; border-radius: 50%; border: 2px solid #94a3b8; background: #fff; font-weight: 700; font-size: .85rem; color: #475569; padding: 0; }
-        .o.chon { background: #1e293b; border-color: #1e293b; color: #fff; }
+        .o { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid #9aa6b2; background: #fff; font-weight: 600; font-size: .85rem; color: var(--muc-nhat); font-family: var(--font-ui); padding: 0; }
+        .o.chon { background: var(--muc); border-color: var(--muc); color: #fff; }
         .o:disabled { cursor: default; }
-        .o.dung { background: #16a34a; border-color: #16a34a; color: #fff; }
-        .o.sai { background: #ef4444; border-color: #ef4444; color: #fff; }
-        .o.dapan { border-color: #16a34a; border-width: 3px; color: #16a34a; }
+        .o.dung { background: var(--dung); border-color: var(--dung); color: #fff; }
+        .o.sai { background: var(--sai); border-color: var(--sai); color: #fff; }
+        .o.dapan { border-color: var(--dung); border-width: 3px; color: var(--dung); }
         .thanh-nop { position: sticky; bottom: 0; background: #fff; border-top: 1px solid #e2e8f0; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; z-index: 10; }
         .msg { padding: 10px 12px; border-radius: 10px; font-size: .88rem; margin-bottom: 12px; }
         .msg-ok { background: #dcfce7; color: #166534; } .msg-warn { background: #fef3c7; color: #92400e; } .msg-err { background: #fee2e2; color: #b91c1c; } .msg-info { background: #eff6ff; color: #1e40af; }
         .diem-to { font-size: 1.6rem; font-weight: 800; color: var(--gd); }
     </style>
+    <link rel="stylesheet" href="css/giao-dien.css?v=20261024b">
 </head>
 <body>
     <div id="login-overlay">
@@ -64,7 +65,7 @@
 
     <div id="app-root" style="display:none;">
         <header class="app-header">
-            <h1 class="main-title"><i class="fa-solid fa-calendar-week"></i> Bài tập tuần</h1>
+            <div class="header-brand"><a href="index.html"><img src="assets/logo-khai-tam.png" alt="Khai Tâm" class="header-logo"></a><h1 class="main-title">Bài tập tuần</h1></div>
             <div class="d-flex gap-2 align-items-center">
                 <a class="btn btn-outline-success btn-sm" href="index.html"><i class="fa-solid fa-house"></i> Luyện đề</a>
                 <span class="small text-muted" id="user-email"></span>
@@ -97,7 +98,7 @@
             </div>
         </div>
     </div>
-    <script src="js/firebase-config.js?v=20261022a"></script>
-    <script src="js/btvn.js?v=20261022a"></script>
+    <script src="js/firebase-config.js?v=20261024b"></script>
+    <script src="js/btvn.js?v=20261024b"></script>
 </body>
 </html>
