@@ -5,3 +5,8 @@ cong-cu-quan-tri/
 service-account.json
 danh-sach-hoc-sinh.csv
 danh-sach-phat-hoc-sinh.csv
+
+# Kho cau hoi gom cho may chu (sinh luc build)
+worker/kho.json
+.wrangler/
+node_modules/

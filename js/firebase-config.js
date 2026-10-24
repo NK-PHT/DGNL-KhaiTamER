@@ -31,3 +31,9 @@ window.DGNL_FIREBASE_CONFIG = {
 // Muốn cho phép thêm/bớt học sinh nào được vào web: giáo viên đăng nhập
 // trang quan-ly-hoc-sinh.html (bằng Gmail quản trị) để thêm/xoá. Danh sách
 // nằm trong Firestore (collection "hocsinh"), không công khai trong code.
+
+// =========================================================================
+// MÁY CHỦ PHÁT ĐỀ (Cloudflare Worker "dgnl-api", mã trong thư mục worker/)
+// Kho câu hỏi nằm trên máy chủ này, trang chỉ nhận đúng các câu của từng đề.
+// =========================================================================
+window.DGNL_API = 'https://dgnl-api.thuthuy611103.workers.dev';

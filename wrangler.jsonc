@@ -1,0 +1,9 @@
+{
+  // Máy chủ phát đề ĐGNL: Cloudflare Worker "dgnl-api" (kết nối repo này trên Cloudflare).
+  // Mỗi lần push, Cloudflare chạy build (gom data/*.js thành worker/kho.json) rồi deploy.
+  "name": "dgnl-api",
+  "main": "worker/index.js",
+  "compatibility_date": "2025-09-01",
+  "build": { "command": "node tools/build_api.js" },
+  "observability": { "enabled": true }
+}

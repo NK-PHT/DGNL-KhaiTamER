@@ -14,7 +14,10 @@
       "firestore.rules",
       "js/app-1.js",
       "cong-cu-google-sheet/**",
-      "cong-cu-chuyen-de/**"
+      "cong-cu-chuyen-de/**",
+      "worker/**",
+      "tools/**",
+      "wrangler.jsonc"
     ],
     "headers": [
       {

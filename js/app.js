@@ -10,7 +10,7 @@ let currentExam = null; // { groups: [...], timer, timeLeft, submitted }
 // Cùng số phiên bản "phá cache" như các thẻ <script> tĩnh trong index.html —
 // đổi số này mỗi lần deploy bản mới để trình duyệt luôn tải file dữ liệu
 // chuyên đề mới nhất, không bị kẹt ở bản .js cũ trong cache.
-const DGNL_ASSET_V = '20260907a';
+const DGNL_ASSET_V = '20261024h';
 function napMotFileDuLieu(src) {
     return new Promise((resolve) => {
         const s = document.createElement('script');
@@ -21,8 +21,33 @@ function napMotFileDuLieu(src) {
     });
 }
 
+// Thông tin kho lấy từ máy chủ (số câu mỗi chuyên đề, số đề thật) — không có nội dung câu
+let THONG_TIN_MAY_CHU = null;
 async function napToanBoDuLieu() {
     const trangThai = document.getElementById('data-load-status');
+    if (window.DGNL_MAY_CHU && window.DGNL_MAY_CHU.co()) {
+        try {
+            THONG_TIN_MAY_CHU = await window.DGNL_MAY_CHU.thongTin();
+            trangThai.textContent = `Sẵn sàng: ${THONG_TIN_MAY_CHU.chuyenDe.length} chuyên đề.`;
+            DGNL_DATA_READY = true;
+            populateDropdown();
+            capNhatHienThiTheoCheDo();
+            document.getElementById('btn-generate').disabled = false;
+        } catch (e) {
+            THONG_TIN_MAY_CHU = null;
+            if (e.status) {
+                console.error('Máy chủ phát đề từ chối:', e);
+                trangThai.textContent = e.status === 403
+                    ? 'Email của bạn chưa có trong danh sách học sinh. Liên hệ giáo viên.'
+                    : 'Máy chủ đề báo lỗi (' + (e.message || e) + '). Hãy tải lại trang (Ctrl+F5).';
+                document.getElementById('btn-generate').disabled = true;
+                return;
+            }
+            // Chưa có máy chủ (hoặc mất kết nối tới máy chủ): dùng tệp dữ liệu như cũ
+            console.warn('Không kết nối được máy chủ phát đề, dùng tệp dữ liệu:', e);
+        }
+        if (THONG_TIN_MAY_CHU) return;
+    }
     const manifest = (window.DGNL_MANIFEST && window.DGNL_MANIFEST.chuyenDe) || [];
     // BỌC try/catch/finally quanh toàn bộ phần khởi tạo giao diện: nếu 1 bước
     // nào đó lỡ lỗi (VD trình duyệt còn giữ cache 1 file .js cũ không khớp
@@ -40,6 +65,7 @@ async function napToanBoDuLieu() {
             capNhatHienThiTheoCheDo();
             return;
         }
+        await napMotFileDuLieu('data/de-that.js');
         const ketQua = await Promise.all(manifest.map(m => napMotFileDuLieu(m.file)));
         const soLoi = ketQua.filter(r => !r.ok).length;
         trangThai.textContent = soLoi > 0
@@ -76,11 +102,20 @@ function populateDropdown() {
     const manifest = (window.DGNL_MANIFEST && window.DGNL_MANIFEST.chuyenDe) || [];
     const optTong = document.createElement('option');
     optTong.value = '__TONG_HOP__';
-    const soDeThat = (window.DGNL_DE_THAT && window.DGNL_DE_THAT.length) || 0;
+    const soDeThat = THONG_TIN_MAY_CHU ? THONG_TIN_MAY_CHU.soPhanToan : ((window.DGNL_DE_THAT && window.DGNL_DE_THAT.length) || 0);
     optTong.textContent = soDeThat > 0
         ? '⭐ Đề tổng hợp phần Toán ĐGNL (42 câu · 50 phút, đúng ma trận đề thi thật)'
         : '⭐ Đề tổng hợp phần Toán ĐGNL (random toàn bộ chuyên đề)';
     sel.appendChild(optTong);
+    if (THONG_TIN_MAY_CHU) {
+        THONG_TIN_MAY_CHU.chuyenDe.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            opt.textContent = `${m.ten} (${m.soCau} câu)`;
+            sel.appendChild(opt);
+        });
+        return;
+    }
     manifest.forEach(m => {
         const arr = (window.DGNL_CHUYEN_DE && window.DGNL_CHUYEN_DE[m.id]) || [];
         const opt = document.createElement('option');
@@ -121,6 +156,7 @@ function taoNguonCauHoi(chuyenDeId) {
 // trong số các đề chính thức đã có, chọn ngẫu nhiên — vẫn xáo trộn thứ tự
 // 4 đáp án của từng câu như các chế độ luyện tập khác.
 function coDeThatKhongDe() {
+    if (THONG_TIN_MAY_CHU) return THONG_TIN_MAY_CHU.soPhanToan > 0;
     return !!(window.DGNL_DE_THAT && window.DGNL_DE_THAT.length > 0);
 }
 
@@ -133,6 +169,8 @@ function taoDe() {
     }
     const chuyenDeId = document.getElementById('select-chuyen-de').value;
     const chuyenDeTen = document.getElementById('select-chuyen-de').selectedOptions[0].textContent;
+
+    if (THONG_TIN_MAY_CHU) { taoDeTuMayChu(chuyenDeId, chuyenDeTen); return; }
 
     if (chuyenDeId === '__TONG_HOP__' && coDeThatKhongDe()) {
         taoDeTongHopThat(chuyenDeTen);
@@ -171,6 +209,29 @@ function taoDe() {
     const soPhut = parseInt(document.getElementById('input-so-phut').value, 10) || 30;
 
     batDauLamBai(chuyenDeTen, groups, enableTimer, soPhut);
+}
+
+// Rút đề trên máy chủ: chỉ nhận về đúng các câu của đề
+async function taoDeTuMayChu(chuyenDeId, chuyenDeTen) {
+    const btn = document.getElementById('btn-generate');
+    btn.disabled = true;
+    try {
+        const soCau = parseInt(document.getElementById('input-so-cau').value, 10) || 20;
+        const de = await window.DGNL_MAY_CHU.layDe({ mon: 'toan', chuyenDe: chuyenDeId, soCau });
+        const groups = de.nhom.map(xaoTronDapAnNhom);
+        if (de.coDinhGio) {
+            batDauLamBai(de.ten, groups, true, de.phut, de.bd);
+        } else {
+            const enableTimer = document.getElementById('check-timer').checked;
+            const soPhut = parseInt(document.getElementById('input-so-phut').value, 10) || 30;
+            batDauLamBai(chuyenDeTen, groups, enableTimer, soPhut);
+        }
+    } catch (e) {
+        console.error(e);
+        alert(e.message || 'Không tạo được đề, vui lòng thử lại.');
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 // Xáo trộn thứ tự 4 đáp án của TỪNG câu trong 1 nhóm/cụm — giữ nguyên THỨ

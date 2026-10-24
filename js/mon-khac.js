@@ -104,6 +104,18 @@
         const mon = $('select-mon').value;
         const t = MON[mon];
         const btn = $('btn-generate'); btn.disabled = true;
+        if (typeof THONG_TIN_MAY_CHU !== 'undefined' && THONG_TIN_MAY_CHU) {
+            try {
+                const d = await window.DGNL_MAY_CHU.layDe({ mon });
+                batDauLamBai(d.ten, d.nhom.map(xaoTronDapAnNhom), true, d.phut, d.bd);
+            } catch (e) {
+                console.error(e);
+                alert(e.message || 'Không tạo được đề, vui lòng thử lại.');
+            } finally {
+                btn.disabled = false;
+            }
+            return;
+        }
         try {
             const de = await napTatCa();
             let groups = [], bd = t.bd;
