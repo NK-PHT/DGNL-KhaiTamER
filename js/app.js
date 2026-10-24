@@ -375,20 +375,22 @@ function renderExam() {
             qDiv.dataset.correct = q.correctIndex;
             groupDiv.appendChild(qDiv);
 
-            // 1 dòng trên "phiếu trả lời": số câu + 4 ô tròn A B C D
-            const box = document.createElement('div');
+            // 1 dòng trên "phiếu trả lời": số câu + 4 ô tròn A B C D CHỈ ĐỂ XEM
+            // (ô tô đậm = đáp án đã chọn). Bấm vào dòng là nhảy tới câu đó —
+            // KHÔNG chọn đáp án từ phiếu, tránh lỡ tay đổi đáp án đã làm.
+            const box = document.createElement('button');
+            box.type = 'button';
             box.className = 'progress-box';
             box.id = 'progress-' + globalNo;
-            box.innerHTML = `<span class="so" title="Tới câu ${globalNo}">${globalNo}</span>` +
-                q.choices.map((_, k) => `<button type="button" class="o" data-k="${k}" aria-label="Câu ${globalNo} chọn ${String.fromCharCode(65 + k)}">${String.fromCharCode(65 + k)}</button>`).join('');
-            box.querySelector('.so').addEventListener('click', () => {
-                document.getElementById('question-' + globalNo).scrollIntoView({ behavior: 'smooth', block: 'center' });
+            box.title = `Tới câu ${globalNo}`;
+            box.setAttribute('aria-label', `Tới câu ${globalNo}`);
+            box.innerHTML = `<span class="so">${globalNo}</span>` +
+                q.choices.map((_, k) => `<span class="o" aria-hidden="true">${String.fromCharCode(65 + k)}</span>`).join('');
+            box.addEventListener('click', () => {
+                const qEl = document.getElementById('question-' + globalNo);
+                qEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                qEl.classList.remove('nhay-toi'); void qEl.offsetWidth; qEl.classList.add('nhay-toi');
             });
-            box.querySelectorAll('.o').forEach(o => o.addEventListener('click', () => {
-                if (currentExam.submitted) return;
-                const inp = document.querySelector(`#opt-${globalNo}-${o.dataset.k} input`);
-                if (inp && !inp.disabled) { inp.checked = true; inp.dispatchEvent(new Event('change')); }
-            }));
             (progressGroupWrap || grid).appendChild(box);
         });
 
@@ -487,7 +489,6 @@ function submitExam() {
             o.classList.remove('chon');
             if (k === chosenIndex) o.classList.add(isCorrect ? 'dung' : 'sai');
             else if (k === correctIndex) o.classList.add('dap-an');
-            o.disabled = true;
         });
     });
 

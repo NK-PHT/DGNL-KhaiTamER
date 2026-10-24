@@ -129,15 +129,20 @@
         }
         .progress-grid::-webkit-scrollbar { width: 6px; }
         .progress-grid::-webkit-scrollbar-thumb { background: #c9d3dc; border-radius: 999px; }
-        .progress-box { display: flex; align-items: center; gap: 3px; width: 128px; padding: 2px 1px; border-radius: 6px; box-sizing: border-box; }
-        .progress-box .so { flex: 0 0 25px; width: 25px; text-align: right; padding-right: 4px; font-size: .78rem; font-weight: 600; color: var(--muc-nhat); cursor: pointer; font-variant-numeric: tabular-nums; }
-        .progress-box .so:hover { color: var(--troi-dam); text-decoration: underline; }
+        .progress-box { display: flex; align-items: center; gap: 3px; width: 128px; padding: 2px 1px; border-radius: 6px; box-sizing: border-box;
+            background: none; border: 1px solid transparent; font-family: var(--font-ui); cursor: pointer; text-align: left; }
+        .progress-box:hover { border-color: var(--troi-vien); background: var(--troi-nhat); }
+        .progress-box:hover .so { color: var(--troi-dam); }
+        .progress-box .o { display: inline-flex; align-items: center; justify-content: center; }
+        /* câu vừa nhảy tới: nháy viền nhẹ 1 lần để dễ nhận ra */
+        .question-item.nhay-toi { animation: nhayToi 1.2s ease-out; border-radius: 8px; }
+        @keyframes nhayToi { 0% { box-shadow: 0 0 0 3px rgba(29,155,214,.55); } 100% { box-shadow: 0 0 0 3px rgba(29,155,214,0); } }
+        .progress-box .so { flex: 0 0 25px; width: 25px; text-align: right; padding-right: 4px; font-size: .78rem; font-weight: 600; color: var(--muc-nhat); font-variant-numeric: tabular-nums; }
         .progress-box .o {
             flex: 0 0 20px; width: 20px; height: 20px; box-sizing: border-box; border-radius: 50%; border: 1.25px solid #a9b4bf; background: #fff;
             font-size: .62rem; font-weight: 600; color: #8a95a1; padding: 0; line-height: 1; font-family: var(--font-ui);
         }
-        .progress-box .o:hover { border-color: var(--troi); color: var(--troi-dam); }
-        .progress-box .o.chon { background: var(--muc); border-color: var(--muc); color: #fff; }
+                .progress-box .o.chon { background: var(--muc); border-color: var(--muc); color: #fff; }
         .progress-box .o.dung { background: var(--dung); border-color: var(--dung); color: #fff; }
         .progress-box .o.sai { background: var(--sai); border-color: var(--sai); color: #fff; }
         .progress-box .o.dap-an { border: 2px solid var(--dung); color: var(--dung); }
@@ -252,7 +257,7 @@
                 <div id="progress-wrap" style="display:none;">
                     <div class="phieu-tieu-de"><b>Phiếu trả lời</b><span id="dem-da-lam"></span></div>
                     <div class="progress-grid" id="progress-grid"></div>
-                    <div class="chu-thich-phieu">Bấm ô tròn để chọn đáp án, bấm số câu để tới câu đó. <i></i>câu dùng chung đoạn thông tin.</div>
+                    <div class="chu-thich-phieu">Phiếu chỉ để xem: ô tô đậm là đáp án em đã chọn. Bấm vào một dòng để tới câu đó. <i></i>câu dùng chung đoạn thông tin.</div>
                 </div>
 
                 <div class="lien-ket-phu">
@@ -339,13 +344,13 @@
          bản mới, đổi số phía sau ?v= (VD sang ngày/giờ deploy) để đảm bảo
          trình duyệt luôn tải lại đúng bản mới nhất, không cần học sinh/giáo
          viên phải tự xoá cache thủ công. -->
-    <script src="js/firebase-config.js?v=20261024d"></script>
-    <script src="js/auth.js?v=20261024d"></script>
-    <script src="data/manifest.js?v=20261024d"></script>
-    <script src="data/de-that.js?v=20261024d"></script>
-    <script src="data/de-mon/manifest.js?v=20261024d"></script>
-    <script src="js/app.js?v=20261024d"></script>
-    <script src="js/mon-khac.js?v=20261024d"></script>
-    <script src="js/chon-nhanh.js?v=20261024d"></script>
+    <script src="js/firebase-config.js?v=20261024g"></script>
+    <script src="js/auth.js?v=20261024g"></script>
+    <script src="data/manifest.js?v=20261024g"></script>
+    <script src="data/de-that.js?v=20261024g"></script>
+    <script src="data/de-mon/manifest.js?v=20261024g"></script>
+    <script src="js/app.js?v=20261024g"></script>
+    <script src="js/mon-khac.js?v=20261024g"></script>
+    <script src="js/chon-nhanh.js?v=20261024g"></script>
 </body>
 </html>
